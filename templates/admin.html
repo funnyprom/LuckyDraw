@@ -1,0 +1,1087 @@
+{% extends 'base.html' %}
+
+{% block title %}จัดการรายชื่อ - Lucky Draw{% endblock %}
+
+{% block extra_css %}
+<style>
+    .admin-container {
+        padding: 2rem 0;
+    }
+
+    .page-title {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .page-title h1 {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 2.5rem;
+        font-weight: 900;
+        color: #ffffff;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .page-title p {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 1.2rem;
+        margin-top: 0.5rem;
+    }
+
+    /* Tabs */
+    .admin-tabs {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        justify-content: center;
+    }
+
+    .admin-tab {
+        padding: 1rem 2rem;
+        border-radius: 12px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        background: rgba(0, 51, 160, 0.6);
+        color: white;
+        font-family: 'Prompt', sans-serif;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .admin-tab:hover {
+        border-color: #ffffff;
+        background: rgba(0, 51, 160, 0.9);
+    }
+
+    .admin-tab.active {
+        background: #ffffff;
+        color: #0033A0;
+        border-color: #ffffff;
+    }
+
+    .admin-tab.active.prizes-tab {
+        background: #ffffff;
+        color: #DAA520;
+    }
+
+    .admin-tab i {
+        margin-right: 0.5rem;
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    .admin-grid {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 2rem;
+    }
+
+    @media (max-width: 1024px) {
+        .admin-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Add Section */
+    .add-section {
+        position: sticky;
+        top: 120px;
+    }
+
+    .section-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .section-title i {
+        color: #0033A0;
+    }
+
+    .section-title.gold i {
+        color: #DAA520;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #333;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        width: 100%;
+        padding: 1rem;
+        border-radius: 12px;
+        border: 2px solid #e0e0e0;
+        background: #f9f9f9;
+        color: #333;
+        font-family: 'Prompt', sans-serif;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+        outline: none;
+        border-color: #0033A0;
+        box-shadow: 0 0 15px rgba(0, 51, 160, 0.15);
+        background: #ffffff;
+    }
+
+    .form-group textarea {
+        min-height: 120px;
+        resize: vertical;
+    }
+
+    .form-hint {
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.5);
+        margin-top: 0.5rem;
+    }
+
+    .btn-full {
+        width: 100%;
+    }
+
+    /* Color Picker */
+    .color-picker-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .color-input {
+        width: 100%;
+        height: 50px;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        cursor: pointer;
+        background: transparent;
+        padding: 3px;
+    }
+
+    .color-input::-webkit-color-swatch-wrapper {
+        padding: 0;
+    }
+
+    .color-input::-webkit-color-swatch {
+        border: none;
+        border-radius: 8px;
+    }
+
+    .color-presets {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .color-preset {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .color-preset:hover {
+        transform: scale(1.15);
+        border-color: white;
+    }
+
+    /* Prize Card with Color */
+    .prize-color-indicator {
+        width: 8px;
+        height: 100%;
+        position: absolute;
+        left: 0;
+        top: 0;
+        border-radius: 15px 0 0 15px;
+    }
+
+    /* Prize Type Toggle */
+    .prize-type-toggle {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .prize-type-btn {
+        flex: 1;
+        padding: 1rem;
+        border-radius: 12px;
+        border: 2px solid #e0e0e0;
+        background: #f9f9f9;
+        color: #666;
+        font-family: 'Prompt', sans-serif;
+        font-size: 0.95rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+    }
+
+    .prize-type-btn:hover {
+        border-color: #0033A0;
+    }
+
+    .prize-type-btn.active.grand {
+        background: #DAA520;
+        border-color: #DAA520;
+        color: #ffffff;
+    }
+
+    .prize-type-btn.active.normal {
+        background: #0033A0;
+        border-color: #0033A0;
+        color: #ffffff;
+    }
+
+    .prize-type-btn i {
+        display: block;
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Divider */
+    .divider {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin: 2rem 0;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .divider::before,
+    .divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* List Section */
+    .list-section {
+        overflow: hidden;
+    }
+
+    .list-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .search-box {
+        display: flex;
+        align-items: center;
+        background: #f9f9f9;
+        border: 2px solid #e0e0e0;
+        border-radius: 50px;
+        padding: 0.5rem 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .search-box:focus-within {
+        border-color: #0033A0;
+    }
+
+    .search-box i {
+        color: #999;
+        margin-right: 0.75rem;
+    }
+
+    .search-box input {
+        background: none;
+        border: none;
+        color: #333;
+        font-family: 'Prompt', sans-serif;
+        font-size: 1rem;
+        width: 200px;
+    }
+
+    .search-box input:focus {
+        outline: none;
+    }
+
+    .search-box input::placeholder {
+        color: #aaa;
+    }
+
+    /* Stats */
+    .stats-row {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .stat-mini {
+        flex: 1;
+        min-width: 100px;
+        padding: 1rem;
+        border-radius: 12px;
+        text-align: center;
+        background: #f5f7fa;
+        border-left: 4px solid #0033A0;
+    }
+
+    .stat-mini .number {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #0033A0;
+    }
+
+    .stat-mini.gold .number {
+        color: #DAA520;
+    }
+
+    .stat-mini.gold {
+        border-left-color: #DAA520;
+    }
+
+    .stat-mini .label {
+        font-size: 0.8rem;
+        color: #666;
+        margin-top: 0.25rem;
+    }
+
+    /* Items Grid */
+    .items-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 1rem;
+        max-height: 500px;
+        overflow-y: auto;
+        padding-right: 0.5rem;
+    }
+
+    .item-card {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        border: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        border-left: 4px solid #0033A0;
+    }
+
+    .item-card:hover {
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+    }
+
+    .item-card.winner {
+        border-left-color: #DAA520;
+        background: #fffbf0;
+    }
+
+    .item-card.grand {
+        border-left-color: #DAA520;
+    }
+
+    .item-card.claimed {
+        opacity: 0.6;
+    }
+
+    .item-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .item-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #0033A0;
+        color: #ffffff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
+    .item-card.grand .item-avatar {
+        background: #DAA520;
+    }
+
+    .item-details {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .item-name {
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: #333;
+    }
+
+    .item-status {
+        font-size: 0.8rem;
+        color: #999;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+
+    .item-status.grand {
+        color: #DAA520;
+    }
+
+    .item-status.winner {
+        color: #DAA520;
+    }
+
+    .btn-delete {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: none;
+        background: #ffe5e5;
+        color: #e74c3c;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .btn-delete:hover {
+        background: #e74c3c;
+        color: white;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 2rem;
+        background: #f9f9f9;
+        border-radius: 15px;
+        border: 2px dashed #ddd;
+        grid-column: 1 / -1;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        color: #ccc;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state h3 {
+        font-size: 1.3rem;
+        margin-bottom: 0.5rem;
+        color: #666;
+    }
+
+    .empty-state p {
+        color: #999;
+    }
+
+    /* Actions Card */
+    .actions-card {
+        margin-top: 1.5rem;
+    }
+
+    .actions-card .section-title i {
+        color: #e74c3c;
+    }
+
+    /* Confirm Modal */
+    .confirm-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+        backdrop-filter: blur(10px);
+    }
+
+    .confirm-modal.active {
+        display: flex;
+    }
+
+    .confirm-content {
+        background: #ffffff;
+        border-radius: 15px;
+        padding: 2rem;
+        text-align: center;
+        max-width: 400px;
+        width: 90%;
+        border: none;
+        box-shadow: 0 10px 50px rgba(0, 0, 0, 0.3);
+    }
+
+    .confirm-content i {
+        font-size: 3rem;
+        color: #e74c3c;
+        margin-bottom: 1rem;
+    }
+
+    .confirm-content h3 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+        color: #333;
+    }
+
+    .confirm-content p {
+        color: #666;
+        margin-bottom: 1.5rem;
+    }
+
+    .confirm-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container admin-container">
+    <div class="page-title">
+        <h1><i class="fas fa-cog"></i> จัดการระบบ</h1>
+        <p>จัดการรายชื่อคนและรางวัล</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="admin-tabs">
+        <button class="admin-tab active" onclick="switchAdminTab('participants')">
+            <i class="fas fa-users"></i> รายชื่อคน
+        </button>
+        <button class="admin-tab prizes-tab" onclick="switchAdminTab('prizes')">
+            <i class="fas fa-gift"></i> รายชื่อรางวัล
+        </button>
+    </div>
+
+    <!-- Participants Tab -->
+    <div id="participants-tab" class="tab-content active">
+        <div class="admin-grid">
+            <!-- Add Participant -->
+            <div class="add-section">
+                <div class="card">
+                    <h3 class="section-title">
+                        <i class="fas fa-user-plus"></i> เพิ่มรายชื่อคน
+                    </h3>
+
+                    <form id="singleParticipantForm" onsubmit="addParticipant(event)" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label for="participantName">ชื่อ</label>
+                            <input type="text" id="participantName" placeholder="กรอกชื่อผู้เข้าร่วม" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="participantImage"><i class="fas fa-image"></i> รูปภาพ (ไม่บังคับ)</label>
+                            <input type="file" id="participantImage" accept="image/*" onchange="previewParticipantImage(this)">
+                            <div class="form-hint">รองรับไฟล์ PNG, JPG, JPEG, GIF, WEBP (ขนาดไม่เกิน 16MB)</div>
+                            <div id="participantImagePreview" style="margin-top: 1rem; display: none;">
+                                <img id="previewParticipantImg" src="" alt="Preview" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid #e0e0e0;">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="participantPhone">เบอร์โทร (ไม่บังคับ)</label>
+                            <input type="text" id="participantPhone" placeholder="0XX-XXX-XXXX">
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-full">
+                            <i class="fas fa-plus"></i> เพิ่มรายชื่อ
+                        </button>
+                    </form>
+
+                    <div class="divider">หรือ</div>
+
+                    <form id="bulkParticipantForm" onsubmit="addBulkParticipants(event)">
+                        <div class="form-group">
+                            <label for="bulkParticipants">เพิ่มหลายคนพร้อมกัน</label>
+                            <textarea id="bulkParticipants" placeholder="ใส่ชื่อ หนึ่งชื่อต่อบรรทัด&#10;&#10;ตัวอย่าง:&#10;สมชาย ใจดี&#10;สมหญิง รักสวย"></textarea>
+                            <div class="form-hint">ใส่ชื่อหนึ่งชื่อต่อบรรทัด</div>
+                        </div>
+                        <button type="submit" class="btn btn-gold btn-full">
+                            <i class="fas fa-users"></i> เพิ่มทั้งหมด
+                        </button>
+                    </form>
+                </div>
+
+                <div class="card actions-card">
+                    <h3 class="section-title">
+                        <i class="fas fa-trash"></i> จัดการข้อมูล
+                    </h3>
+                    <div style="display: flex; flex-direction: column; gap: 1rem;">
+                        <button class="btn btn-primary btn-full" onclick="confirmAction('reset', 'รีเซ็ตผลการสุ่ม', 'รีเซ็ตผลการสุ่มทั้งหมด? (รายชื่อและรางวัลจะยังอยู่)')">
+                            <i class="fas fa-redo"></i> รีเซ็ตผลการสุ่ม
+                        </button>
+                        <button class="btn btn-danger btn-full" onclick="confirmAction('clear-participants', 'ลบรายชื่อคนทั้งหมด', 'ลบรายชื่อคนทั้งหมดหรือไม่?')">
+                            <i class="fas fa-user-times"></i> ลบรายชื่อคนทั้งหมด
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Participants List -->
+            <div class="list-section card">
+                <div class="list-header">
+                    <h3 class="section-title" style="margin-bottom: 0;">
+                        <i class="fas fa-users"></i> รายชื่อคน
+                    </h3>
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchParticipant" placeholder="ค้นหาชื่อ..." oninput="filterItems('participant')">
+                    </div>
+                </div>
+
+                <div class="stats-row">
+                    <div class="stat-mini">
+                        <div class="number" id="totalParticipants">{{ participants|length }}</div>
+                        <div class="label">ทั้งหมด</div>
+                    </div>
+                    <div class="stat-mini">
+                        <div class="number" id="availableParticipants">{{ participants|selectattr('is_winner', 'equalto', false)|list|length }}</div>
+                        <div class="label">ยังไม่ได้รางวัล</div>
+                    </div>
+                    <div class="stat-mini gold">
+                        <div class="number" id="winnerParticipants">{{ participants|selectattr('is_winner')|list|length }}</div>
+                        <div class="label">ได้รางวัลแล้ว</div>
+                    </div>
+                </div>
+
+                <div class="items-grid" id="participantsGrid">
+                    {% if participants|length > 0 %}
+                        {% for p in participants %}
+                        <div class="item-card {% if p.is_winner %}winner{% endif %}" data-id="{{ p.id }}" data-name="{{ p.name|lower }}" data-type="participant">
+                            <div class="item-info">
+                                {% if p.image_path %}
+                                <div class="item-avatar" style="background: transparent; padding: 0; width: 50px; height: 50px; border-radius: 50%; overflow: hidden;">
+                                    <img src="/static/{{ p.image_path }}" alt="{{ p.name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                                </div>
+                                {% else %}
+                                <div class="item-avatar">{{ p.name[0] }}</div>
+                                {% endif %}
+                                <div class="item-details">
+                                    <div class="item-name">{{ p.name }}</div>
+                                    <div class="item-status {% if p.is_winner %}winner{% endif %}">
+                                        {% if p.is_winner %}
+                                        <i class="fas fa-trophy"></i> ได้รางวัล: {{ p.prize.name if p.prize else '-' }}
+                                        {% else %}
+                                        <i class="fas fa-clock"></i> รอลุ้น
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="btn-delete" onclick="deleteItem('participant', {{ p.id }}, '{{ p.name }}')">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-user-plus"></i>
+                            <h3>ยังไม่มีรายชื่อคน</h3>
+                            <p>เพิ่มรายชื่อผู้เข้าร่วมเพื่อเริ่มสุ่มรางวัล</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prizes Tab -->
+    <div id="prizes-tab" class="tab-content">
+        <div class="admin-grid">
+            <!-- Add Prize -->
+            <div class="add-section">
+                <div class="card">
+                    <h3 class="section-title gold">
+                        <i class="fas fa-gift"></i> เพิ่มรางวัล
+                    </h3>
+
+                    <!-- Prize Type Toggle -->
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: rgba(255, 255, 255, 0.8);">
+                        ประเภทรางวัล
+                    </label>
+                    <div class="prize-type-toggle">
+                        <div class="prize-type-btn active grand" data-grand="true" onclick="selectPrizeType(true)">
+                            <i class="fas fa-crown"></i>
+                            รางวัลใหญ่
+                        </div>
+                        <div class="prize-type-btn normal" data-grand="false" onclick="selectPrizeType(false)">
+                            <i class="fas fa-gift"></i>
+                            รางวัลทั่วไป
+                        </div>
+                    </div>
+
+                    <form id="singlePrizeForm" onsubmit="addPrize(event)" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label for="prizeName">ชื่อรางวัล</label>
+                            <input type="text" id="prizeName" placeholder="เช่น ข้าวสาร, มอไซต์" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="prizeImage"><i class="fas fa-image"></i> รูปภาพรางวัล (ไม่บังคับ)</label>
+                            <input type="file" id="prizeImage" accept="image/*" onchange="previewImage(this)">
+                            <div class="form-hint">รองรับไฟล์ PNG, JPG, JPEG, GIF, WEBP (ขนาดไม่เกิน 16MB)</div>
+                            <div id="imagePreview" style="margin-top: 1rem; display: none;">
+                                <img id="previewImg" src="" alt="Preview" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid #e0e0e0;">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="prizeQuantity"><i class="fas fa-sort-numeric-up"></i> จำนวนรางวัล</label>
+                            <input type="number" id="prizeQuantity" value="1" min="1" max="999" placeholder="จำนวนรางวัล">
+                            <div class="form-hint">เช่น ข้าวสาร 10 รางวัล ให้ใส่ 10</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="prizeQrCode"><i class="fas fa-qrcode"></i> รหัส QR Code (ไม่บังคับ)</label>
+                            <input type="text" id="prizeQrCode" placeholder="เช่น PRIZE001, SKU123">
+                            <div class="form-hint">ใช้สำหรับค้นหาหรือสแกน QR Code ในหน้าสุ่มรางวัล</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="prizeDesc">รายละเอียด (ไม่บังคับ)</label>
+                            <input type="text" id="prizeDesc" placeholder="เช่น มูลค่า 50,000 บาท">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-palette"></i> สีรางวัล (สำหรับแสดงบนวงล้อ)</label>
+                            <div class="color-picker-wrapper">
+                                <input type="color" id="prizeColor" value="#00d4ff" class="color-input">
+                                <div class="color-presets">
+                                    <button type="button" class="color-preset" style="background: #ffffff" onclick="setColor('#ffffff')" title="ขาว (ข้าวสาร)"></button>
+                                    <button type="button" class="color-preset" style="background: #ff4444" onclick="setColor('#ff4444')" title="แดง (มอไซต์)"></button>
+                                    <button type="button" class="color-preset" style="background: #ffd700" onclick="setColor('#ffd700')" title="ทอง"></button>
+                                    <button type="button" class="color-preset" style="background: #00d4ff" onclick="setColor('#00d4ff')" title="ฟ้า"></button>
+                                    <button type="button" class="color-preset" style="background: #00ff88" onclick="setColor('#00ff88')" title="เขียว"></button>
+                                    <button type="button" class="color-preset" style="background: #ff00ff" onclick="setColor('#ff00ff')" title="ชมพู"></button>
+                                    <button type="button" class="color-preset" style="background: #ff6b35" onclick="setColor('#ff6b35')" title="ส้ม"></button>
+                                    <button type="button" class="color-preset" style="background: #9c27b0" onclick="setColor('#9c27b0')" title="ม่วง"></button>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-gold btn-full">
+                            <i class="fas fa-plus"></i> เพิ่มรางวัล
+                        </button>
+                    </form>
+                </div>
+
+                <div class="card actions-card">
+                    <h3 class="section-title">
+                        <i class="fas fa-trash"></i> จัดการรางวัล
+                    </h3>
+                    <button class="btn btn-danger btn-full" onclick="confirmAction('clear-prizes', 'ลบรางวัลทั้งหมด', 'ลบรางวัลทั้งหมดหรือไม่?')">
+                        <i class="fas fa-gift"></i> ลบรางวัลทั้งหมด
+                    </button>
+                </div>
+            </div>
+
+            <!-- Prizes List -->
+            <div class="list-section card">
+                <div class="list-header">
+                    <h3 class="section-title gold" style="margin-bottom: 0;">
+                        <i class="fas fa-gift"></i> รายชื่อรางวัล
+                    </h3>
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchPrize" placeholder="ค้นหารางวัล..." oninput="filterItems('prize')">
+                    </div>
+                </div>
+
+                <div class="stats-row">
+                    <div class="stat-mini gold">
+                        <div class="number" id="grandPrizes">{{ prizes|selectattr('is_grand')|list|length }}</div>
+                        <div class="label">หมวดรางวัลใหญ่</div>
+                    </div>
+                    <div class="stat-mini">
+                        <div class="number" id="normalPrizes">{{ prizes|selectattr('is_grand', 'equalto', false)|list|length }}</div>
+                        <div class="label">หมวดรางวัลทั่วไป</div>
+                    </div>
+                </div>
+
+                <div class="items-grid" id="prizesGrid">
+                    {% if prizes|length > 0 %}
+                        {% for prize in prizes %}
+                        <div class="item-card {% if prize.is_grand %}grand{% endif %} {% if prize.remaining == 0 %}claimed{% endif %}" 
+                             data-id="{{ prize.id }}" data-name="{{ prize.name|lower }}" data-type="prize"
+                             style="border-left: 5px solid {{ prize.color or '#00d4ff' }};">
+                            <div class="item-info">
+                                {% if prize.image_path %}
+                                <div class="item-avatar" style="background: transparent; padding: 0; width: 50px; height: 50px; border-radius: 8px; overflow: hidden;">
+                                    <img src="/static/{{ prize.image_path }}" alt="{{ prize.name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                                </div>
+                                {% else %}
+                                <div class="item-avatar" style="background: {{ prize.color or '#00d4ff' }}; {% if prize.color == '#ffffff' or prize.color == '#ffd700' %}color: #1a1a2e;{% endif %}">
+                                    <i class="fas {% if prize.is_grand %}fa-crown{% else %}fa-gift{% endif %}"></i>
+                                </div>
+                                {% endif %}
+                                <div class="item-details">
+                                    <div class="item-name">{{ prize.name }}</div>
+                                    <div class="item-status {% if prize.is_grand %}grand{% endif %}">
+                                        <span style="display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: {{ prize.color or '#00d4ff' }}; margin-right: 5px;"></span>
+                                        {% if prize.is_grand %}รางวัลใหญ่{% else %}รางวัลทั่วไป{% endif %}
+                                        <span style="margin-left: 8px; background: #f0f0f0; padding: 2px 8px; border-radius: 10px; color: #333; font-size: 0.75rem;">
+                                            เหลือ {{ prize.remaining }}/{{ prize.quantity }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="btn-delete" onclick="deleteItem('prize', {{ prize.id }}, '{{ prize.name }}')">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-gift"></i>
+                            <h3>ยังไม่มีรางวัล</h3>
+                            <p>เพิ่มรางวัลเพื่อเริ่มสุ่ม</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="confirm-modal" id="confirmModal">
+    <div class="confirm-content">
+        <i class="fas fa-exclamation-triangle"></i>
+        <h3 id="confirmTitle">ยืนยัน</h3>
+        <p id="confirmMessage">คุณแน่ใจหรือไม่?</p>
+        <div class="confirm-buttons">
+            <button class="btn btn-primary" onclick="closeConfirm()">
+                <i class="fas fa-times"></i> ยกเลิก
+            </button>
+            <button class="btn btn-danger" onclick="executeConfirmAction()">
+                <i class="fas fa-check"></i> ยืนยัน
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let selectedPrizeType = true; // true = grand, false = normal
+    let pendingAction = null;
+
+    // Switch admin tabs
+    function switchAdminTab(tab) {
+        document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        document.querySelector(`[onclick="switchAdminTab('${tab}')"]`).classList.add('active');
+        document.getElementById(`${tab}-tab`).classList.add('active');
+    }
+
+    // Select prize type
+    function selectPrizeType(isGrand) {
+        selectedPrizeType = isGrand;
+        document.querySelectorAll('.prize-type-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`[data-grand="${isGrand}"]`).classList.add('active');
+    }
+
+    // Preview participant image
+    function previewParticipantImage(input) {
+        const preview = document.getElementById('participantImagePreview');
+        const previewImg = document.getElementById('previewParticipantImg');
+        
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(input.files[0]);
+        } else {
+            preview.style.display = 'none';
+        }
+    }
+
+    // Add participant
+    function addParticipant(e) {
+        e.preventDefault();
+        const name = document.getElementById('participantName').value;
+        const phone = document.getElementById('participantPhone').value;
+        const imageFile = document.getElementById('participantImage').files[0];
+
+        // ใช้ FormData ถ้ามีรูปภาพ
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('phone', phone);
+        
+        if (imageFile) {
+            formData.append('image', imageFile);
+        }
+
+        fetch('/api/participants', {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) window.location.reload();
+        });
+    }
+
+    // Add bulk participants
+    function addBulkParticipants(e) {
+        e.preventDefault();
+        const names = document.getElementById('bulkParticipants').value.split('\n').filter(n => n.trim());
+        if (names.length === 0) return alert('กรุณาใส่รายชื่อ');
+
+        fetch('/api/participants/bulk', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ names })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) window.location.reload();
+        });
+    }
+
+    // Set color for single prize
+    function setColor(color) {
+        document.getElementById('prizeColor').value = color;
+    }
+
+    // Set color for bulk prizes
+    function setBulkColor(color) {
+        document.getElementById('bulkPrizeColor').value = color;
+    }
+
+    // Preview image
+    function previewImage(input) {
+        const preview = document.getElementById('imagePreview');
+        const previewImg = document.getElementById('previewImg');
+        
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(input.files[0]);
+        } else {
+            preview.style.display = 'none';
+        }
+    }
+
+    // Add prize
+    function addPrize(e) {
+        e.preventDefault();
+        const name = document.getElementById('prizeName').value;
+        const quantity = parseInt(document.getElementById('prizeQuantity').value) || 1;
+        const qr_code = document.getElementById('prizeQrCode').value;
+        const description = document.getElementById('prizeDesc').value;
+        const color = document.getElementById('prizeColor').value;
+        const imageFile = document.getElementById('prizeImage').files[0];
+
+        // ใช้ FormData ถ้ามีรูปภาพ
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('quantity', quantity);
+        formData.append('qr_code', qr_code);
+        formData.append('description', description);
+        formData.append('color', color);
+        formData.append('is_grand', selectedPrizeType);
+        
+        if (imageFile) {
+            formData.append('image', imageFile);
+        }
+
+        fetch('/api/prizes', {
+            method: 'POST',
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) window.location.reload();
+        });
+    }
+
+    // Delete item
+    function deleteItem(type, id, name) {
+        if (!confirm(`ต้องการลบ "${name}" หรือไม่?`)) return;
+
+        const endpoint = type === 'participant' ? `/api/participants/${id}` : `/api/prizes/${id}`;
+        fetch(endpoint, { method: 'DELETE' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    document.querySelector(`[data-id="${id}"][data-type="${type}"]`).remove();
+                }
+            });
+    }
+
+    // Filter items
+    function filterItems(type) {
+        const searchId = type === 'participant' ? 'searchParticipant' : 'searchPrize';
+        const search = document.getElementById(searchId).value.toLowerCase();
+        const cards = document.querySelectorAll(`[data-type="${type}"]`);
+
+        cards.forEach(card => {
+            const name = card.dataset.name;
+            card.style.display = name.includes(search) ? 'flex' : 'none';
+        });
+    }
+
+    // Confirm action
+    function confirmAction(action, title, message) {
+        pendingAction = action;
+        document.getElementById('confirmTitle').textContent = title;
+        document.getElementById('confirmMessage').textContent = message;
+        document.getElementById('confirmModal').classList.add('active');
+    }
+
+    function closeConfirm() {
+        document.getElementById('confirmModal').classList.remove('active');
+        pendingAction = null;
+    }
+
+    function executeConfirmAction() {
+        if (!pendingAction) return;
+
+        fetch(`/api/${pendingAction}`, { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) window.location.reload();
+            });
+        closeConfirm();
+    }
+
+    document.getElementById('confirmModal').addEventListener('click', function(e) {
+        if (e.target === this) closeConfirm();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+
+{% block title %}เข้าสู่ระบบ - Lucky Draw{% endblock %}
+
+{% block extra_css %}
+<style>
+    .login-container {
+        min-height: calc(100vh - 100px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 2rem;
+    }
+
+    .login-card {
+        background: #ffffff;
+        border-radius: 20px;
+        padding: 3rem;
+        width: 100%;
+        max-width: 450px;
+        border: none;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .login-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 5px;
+        background: #0033A0;
+    }
+
+    .login-header {
+        text-align: center;
+        margin-bottom: 2.5rem;
+    }
+
+    .login-header .icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        color: #0033A0;
+        animation: pulse-icon 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-icon {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+
+    .login-header h1 {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: #0033A0;
+        margin-bottom: 0.5rem;
+    }
+
+    .login-header p {
+        color: #666;
+        font-size: 1rem;
+    }
+
+    .login-form {
+        margin-bottom: 2rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #333;
+    }
+
+    .form-group label i {
+        margin-right: 0.5rem;
+        color: #0033A0;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 1rem 1.25rem;
+        border-radius: 12px;
+        border: 2px solid #e0e0e0;
+        background: #f9f9f9;
+        color: #333;
+        font-family: 'Prompt', sans-serif;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-group input:focus {
+        outline: none;
+        border-color: #0033A0;
+        box-shadow: 0 0 15px rgba(0, 51, 160, 0.15);
+        background: #ffffff;
+    }
+
+    .form-group input::placeholder {
+        color: #aaa;
+    }
+
+    .btn-login {
+        width: 100%;
+        padding: 1.2rem;
+        border: none;
+        border-radius: 15px;
+        font-family: 'Prompt', sans-serif;
+        font-size: 1.1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .btn-admin {
+        background: #0033A0;
+        color: white;
+        box-shadow: 0 5px 20px rgba(0, 51, 160, 0.3);
+        margin-bottom: 1rem;
+    }
+
+    .btn-admin:hover {
+        transform: translateY(-3px);
+        background: #0044BB;
+        box-shadow: 0 10px 30px rgba(0, 51, 160, 0.4);
+    }
+
+    .divider {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin: 2rem 0;
+        color: #999;
+        font-size: 0.9rem;
+    }
+
+    .divider::before,
+    .divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, #ddd, transparent);
+    }
+
+    .guest-section {
+        text-align: center;
+    }
+
+    .guest-section p {
+        color: #666;
+        margin-bottom: 1rem;
+        font-size: 0.95rem;
+    }
+
+    .btn-guest {
+        background: #ffffff;
+        color: #0033A0;
+        border: 2px solid #0033A0;
+        box-shadow: none;
+    }
+
+    .btn-guest:hover {
+        border-color: #0033A0;
+        background: #f0f5ff;
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(0, 51, 160, 0.15);
+    }
+
+    .btn-guest i {
+        margin-right: 0.5rem;
+    }
+
+    /* Error Message */
+    .error-message {
+        background: #fff5f5;
+        border: 2px solid #e74c3c;
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+        color: #e74c3c;
+        animation: shake 0.5s ease;
+    }
+
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        20%, 60% { transform: translateX(-5px); }
+        40%, 80% { transform: translateX(5px); }
+    }
+
+    .error-message i {
+        margin-right: 0.5rem;
+    }
+
+    /* Footer */
+    .login-footer {
+        text-align: center;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #eee;
+    }
+
+    .login-footer p {
+        color: #999;
+        font-size: 0.85rem;
+    }
+
+    .login-footer i {
+        color: #0033A0;
+    }
+
+    /* Responsive */
+    @media (max-width: 500px) {
+        .login-card {
+            padding: 2rem;
+            margin: 1rem;
+        }
+
+        .login-header h1 {
+            font-size: 1.5rem;
+        }
+
+        .login-header .icon {
+            font-size: 3rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <div class="icon"><i class="fas fa-star"></i></div>
+            <h1>LUCKY DRAW</h1>
+            <p>เข้าสู่ระบบเพื่อใช้งาน</p>
+        </div>
+
+        {% if error %}
+        <div class="error-message">
+            <i class="fas fa-exclamation-circle"></i> {{ error }}
+        </div>
+        {% endif %}
+
+        <form class="login-form" method="POST" action="/login">
+            <div class="form-group">
+                <label for="username"><i class="fas fa-user"></i> ชื่อผู้ใช้</label>
+                <input type="text" id="username" name="username" placeholder="กรอกชื่อผู้ใช้" required>
+            </div>
+            <div class="form-group">
+                <label for="password"><i class="fas fa-lock"></i> รหัสผ่าน</label>
+                <input type="password" id="password" name="password" placeholder="กรอกรหัสผ่าน" required>
+            </div>
+            <button type="submit" class="btn-login btn-admin">
+                <i class="fas fa-sign-in-alt"></i> เข้าสู่ระบบ Admin
+            </button>
+        </form>
+
+        <div class="divider">หรือ</div>
+
+        <div class="guest-section">
+            <p>ต้องการดูผลรางวัลอย่างเดียว?</p>
+            <form method="POST" action="/login/guest">
+                <button type="submit" class="btn-login btn-guest">
+                    <i class="fas fa-user-secret"></i> เข้าใช้งานแบบ Guest
+                </button>
+            </form>
+        </div>
+
+        <div class="login-footer">
+            <p>Made with <i class="fas fa-heart"></i> for Lucky Draw events</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

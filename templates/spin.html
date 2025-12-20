@@ -1,0 +1,3383 @@
+{% extends 'base.html' %}
+
+{% block title %}สุ่มผู้โชคดี - Lucky Draw{% endblock %}
+
+{% block extra_css %}
+<style>
+    .spin-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2rem;
+        padding: 2rem 0;
+        position: relative;
+        z-index: 1;
+    }
+
+    .page-title {
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+
+    .page-title h1 {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 2.5rem;
+        font-weight: 900;
+        color: #ffffff;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .page-title p {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 1.1rem;
+        margin-top: 0.5rem;
+    }
+
+    /* Stats Cards */
+    .stats-cards {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .stat-card {
+        background: rgba(255, 255, 255, 0.95);
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        text-align: center;
+        min-width: 130px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        border-left: 4px solid #0033A0;
+    }
+
+    .stat-card.total { border-left-color: #28a745; }
+    .stat-card.participants { border-left-color: #0033A0; }
+    .stat-card.grand { border-left-color: #DAA520; }
+    .stat-card.normal { border-left-color: #0088AA; }
+
+    .stat-card i { font-size: 1.5rem; margin-bottom: 0.3rem; }
+    .stat-card.total i { color: #28a745; }
+    .stat-card.participants i { color: #0033A0; }
+    .stat-card.grand i { color: #DAA520; }
+    .stat-card.normal i { color: #0088AA; }
+
+    .stat-card .number {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 2rem;
+        font-weight: 800;
+    }
+
+    .stat-card.total .number { color: #28a745; }
+    .stat-card.participants .number { color: #0033A0; }
+    .stat-card.grand .number { color: #DAA520; }
+    .stat-card.normal .number { color: #0088AA; }
+
+    .stat-card .label { font-size: 0.8rem; color: #666; }
+
+    /* Step Indicator */
+    .step-indicator {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .step {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 50px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .step.active {
+        background: #ffffff;
+        color: #0033A0;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .step.inactive {
+        background: rgba(255, 255, 255, 0.2);
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .step.completed {
+        background: #28a745;
+        color: #ffffff;
+    }
+
+    .step-number {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.9rem;
+    }
+
+    .step.active .step-number { background: #0033A0; color: #ffffff; }
+    .step.inactive .step-number { background: rgba(255, 255, 255, 0.3); }
+    .step.completed .step-number { background: #ffffff; color: #28a745; }
+    .step-arrow { color: rgba(255, 255, 255, 0.5); font-size: 1.2rem; }
+
+    /* Prize Selection */
+    .prize-selection {
+        width: 100%;
+        max-width: 1000px;
+    }
+
+    /* Search & QR Section */
+    .search-qr-section {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .search-box-container {
+        flex: 1;
+        min-width: 280px;
+        max-width: 500px;
+        position: relative;
+    }
+
+    .search-box-container input {
+        width: 100%;
+        padding: 1rem 1rem 1rem 3rem;
+        border-radius: 50px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        background: rgba(255, 255, 255, 0.95);
+        font-size: 1rem;
+        color: #333;
+        transition: all 0.3s ease;
+    }
+
+    .search-box-container input:focus {
+        outline: none;
+        border-color: #0033A0;
+        box-shadow: 0 0 20px rgba(0, 51, 160, 0.3);
+    }
+
+    .search-box-container input::placeholder {
+        color: #999;
+    }
+
+    .search-box-container i {
+        position: absolute;
+        left: 1.2rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #0033A0;
+        font-size: 1.1rem;
+    }
+
+    .qr-scan-btn {
+        padding: 1rem 1.5rem;
+        border-radius: 50px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        background: linear-gradient(135deg, #0033A0, #0055CC);
+        color: #ffffff;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .qr-scan-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(0, 51, 160, 0.4);
+    }
+
+    .qr-scan-btn i {
+        font-size: 1.2rem;
+    }
+
+    /* QR Scanner Modal */
+    .qr-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .qr-modal.active {
+        display: flex;
+    }
+
+    .qr-modal-content {
+        background: #ffffff;
+        border-radius: 20px;
+        padding: 2rem;
+        max-width: 500px;
+        width: 90%;
+        text-align: center;
+    }
+
+    .qr-modal-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 1.5rem;
+        color: #0033A0;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    #qrVideo {
+        width: 100%;
+        max-width: 300px;
+        border-radius: 15px;
+        border: 3px solid #0033A0;
+        margin-bottom: 1rem;
+    }
+
+    .qr-modal-hint {
+        color: #666;
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .qr-close-btn {
+        padding: 0.75rem 2rem;
+        border-radius: 50px;
+        border: none;
+        background: #dc3545;
+        color: #ffffff;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .qr-close-btn:hover {
+        background: #c82333;
+    }
+
+    /* No results message */
+    .no-results-message {
+        text-align: center;
+        padding: 2rem;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 1.1rem;
+        display: none;
+    }
+
+    .no-results-message.visible {
+        display: block;
+    }
+
+    .no-results-message i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        display: block;
+    }
+
+    .prize-section-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #ffffff;
+    }
+
+    .prize-section-title.grand { color: #FFD700; }
+    .prize-section-title.normal { color: #ffffff; }
+
+    .prizes-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .prize-card {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 15px;
+        padding: 1.25rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 3px solid transparent;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .prize-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .prize-card.selected {
+        border-color: #0033A0;
+        box-shadow: 0 0 30px rgba(0, 51, 160, 0.4);
+    }
+
+    .prize-card.grand.selected {
+        border-color: #FFD700;
+        box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
+    }
+
+    .prize-card.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .prize-card-color {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 5px;
+    }
+
+    .prize-card-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0.75rem;
+        font-size: 1.5rem;
+        overflow: hidden;
+    }
+
+    .prize-card-icon img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .prize-card.grand .prize-card-icon {
+        background: linear-gradient(135deg, #FFD700, #FFA500);
+        color: #1a0f00;
+    }
+
+    .prize-card.normal .prize-card-icon {
+        background: #0033A0;
+        color: #ffffff;
+    }
+
+    .prize-card-name {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+
+    .prize-card-remaining {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    .prize-card-remaining .count {
+        background: #f0f0f0;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+
+    .prize-card.grand .prize-card-remaining .count {
+        background: #fff8e1;
+        color: #DAA520;
+    }
+
+    .prize-card-qr {
+        font-size: 0.75rem;
+        color: #888;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+
+    .prize-card-qr i {
+        color: #0033A0;
+    }
+
+    /* Game Section (Wheel or Bubble) */
+    .game-section {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    .game-section.active {
+        display: flex;
+    }
+
+    .selected-prize-display {
+        background: rgba(255, 255, 255, 0.95);
+        padding: 1.5rem 2rem;
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    }
+
+    .selected-prize-display.grand {
+        background: linear-gradient(135deg, #fff8e1, #ffe082);
+        border: 2px solid #FFD700;
+    }
+
+    .selected-prize-display .prize-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        background: #0033A0;
+        color: #ffffff;
+        flex-shrink: 0;
+    }
+
+    .selected-prize-display.grand .prize-icon {
+        background: linear-gradient(135deg, #FFD700, #FFA500);
+        color: #1a0f00;
+    }
+
+    .selected-prize-display .prize-image {
+        width: 150px;
+        height: 150px;
+        border-radius: 15px;
+        object-fit: cover;
+        border: 3px solid rgba(0, 51, 160, 0.2);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        flex-shrink: 0;
+        display: none;
+    }
+
+    .selected-prize-display.grand .prize-image {
+        border-color: rgba(255, 215, 0, 0.4);
+        box-shadow: 0 4px 20px rgba(255, 215, 0, 0.3);
+    }
+
+    .selected-prize-display .prize-image.show {
+        display: block !important;
+    }
+
+    .selected-prize-display .prize-info h3 {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #333;
+    }
+
+    .selected-prize-display .prize-info p {
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    .btn-change-prize {
+        margin-left: auto;
+        padding: 0.5rem 1rem;
+        background: transparent;
+        border: 2px solid #0033A0;
+        color: #0033A0;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn-change-prize:hover {
+        background: #0033A0;
+        color: #ffffff;
+    }
+
+    /* ==================== BUBBLE FULLSCREEN SECTION ==================== */
+    .bubble-fullscreen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: linear-gradient(180deg, #000428 0%, #004e92 50%, #009ffd 100%);
+        z-index: 9000;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .bubble-fullscreen.active {
+        display: flex;
+        animation: fadeInBubble 0.5s ease-out;
+    }
+
+    @keyframes fadeInBubble {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .bubble-fullscreen::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: 
+            radial-gradient(circle at 20% 80%, rgba(0, 212, 255, 0.4) 0%, transparent 50%),
+            radial-gradient(circle at 80% 20%, rgba(100, 200, 255, 0.4) 0%, transparent 50%),
+            radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
+        pointer-events: none;
+        animation: aurora 8s ease-in-out infinite;
+    }
+
+    @keyframes aurora {
+        0%, 100% { 
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(0, 212, 255, 0.4) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(100, 200, 255, 0.4) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
+        }
+        50% { 
+            background: 
+                radial-gradient(circle at 30% 70%, rgba(0, 255, 255, 0.5) 0%, transparent 50%),
+                radial-gradient(circle at 70% 30%, rgba(150, 220, 255, 0.5) 0%, transparent 50%),
+                radial-gradient(circle at 40% 60%, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+        }
+    }
+
+    .bubble-fullscreen::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image: 
+            radial-gradient(2px 2px at 20% 30%, rgba(255, 255, 255, 0.8), transparent),
+            radial-gradient(2px 2px at 60% 70%, rgba(255, 255, 255, 0.6), transparent),
+            radial-gradient(1px 1px at 50% 50%, rgba(255, 255, 255, 0.9), transparent),
+            radial-gradient(1px 1px at 80% 10%, rgba(255, 255, 255, 0.7), transparent),
+            radial-gradient(2px 2px at 90% 40%, rgba(255, 255, 255, 0.5), transparent),
+            radial-gradient(1px 1px at 33% 60%, rgba(255, 255, 255, 0.8), transparent),
+            radial-gradient(2px 2px at 10% 80%, rgba(255, 255, 255, 0.6), transparent);
+        background-size: 200% 200%;
+        background-position: 0% 0%;
+        animation: stars 20s linear infinite;
+        pointer-events: none;
+        opacity: 0.6;
+    }
+
+    @keyframes stars {
+        from { background-position: 0% 0%; }
+        to { background-position: 100% 100%; }
+    }
+
+    .bubble-header {
+        position: absolute;
+        top: 20px;
+        left: 0;
+        right: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 30px;
+        z-index: 10;
+    }
+
+    .bubble-prize-info {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        padding: 1rem 2rem;
+        border-radius: 50px;
+        color: #ffffff;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .bubble-prize-info i {
+        color: #00d4ff;
+        font-size: 1.3rem;
+    }
+
+    .bubble-close-btn {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #ffffff;
+        padding: 0.75rem 1.5rem;
+        border-radius: 50px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .bubble-close-btn:hover {
+        background: rgba(255, 255, 255, 0.25);
+    }
+
+    .pop-all-btn {
+        margin-top: 1.5rem;
+        padding: 1.2rem 3rem;
+        font-size: 1.2rem;
+        font-weight: 800;
+        border-radius: 50px;
+        border: none;
+        background: linear-gradient(135deg, #ff6b9d, #c44569, #ff6b9d);
+        background-size: 200% 200%;
+        color: #ffffff;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 
+            0 8px 25px rgba(196, 69, 105, 0.5),
+            0 0 30px rgba(255, 107, 157, 0.4);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        z-index: 10;
+        position: relative;
+        overflow: hidden;
+        animation: buttonGradient 3s ease infinite;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    @keyframes buttonGradient {
+        0%, 100% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+    }
+
+    .pop-all-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        transition: left 0.5s;
+    }
+
+    .pop-all-btn:hover::before {
+        left: 100%;
+    }
+
+    .pop-all-btn:hover {
+        transform: translateY(-4px) scale(1.08);
+        box-shadow: 
+            0 12px 40px rgba(196, 69, 105, 0.7),
+            0 0 50px rgba(255, 107, 157, 0.6);
+        background: linear-gradient(135deg, #ff7eb3, #d4537a, #ff7eb3);
+    }
+
+    .pop-all-btn:active {
+        transform: translateY(-2px) scale(1.05);
+    }
+
+    .pop-all-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .pop-all-btn i {
+        font-size: 1.3rem;
+    }
+
+    .bubble-container {
+        width: 90%;
+        max-width: 1200px;
+        height: 60vh;
+        background: linear-gradient(180deg, 
+            rgba(0, 150, 255, 0.15) 0%, 
+            rgba(0, 200, 255, 0.25) 50%,
+            rgba(100, 220, 255, 0.2) 100%);
+        border-radius: 30px;
+        position: relative;
+        overflow: hidden;
+        border: 3px solid rgba(255, 255, 255, 0.4);
+        box-shadow: 
+            inset 0 0 150px rgba(0, 200, 255, 0.3), 
+            0 0 80px rgba(0, 150, 255, 0.5),
+            0 0 120px rgba(100, 220, 255, 0.3);
+        animation: containerGlow 3s ease-in-out infinite;
+    }
+
+    @keyframes containerGlow {
+        0%, 100% { 
+            box-shadow: 
+                inset 0 0 150px rgba(0, 200, 255, 0.3), 
+                0 0 80px rgba(0, 150, 255, 0.5),
+                0 0 120px rgba(100, 220, 255, 0.3);
+        }
+        50% { 
+            box-shadow: 
+                inset 0 0 200px rgba(0, 255, 255, 0.4), 
+                0 0 100px rgba(0, 200, 255, 0.6),
+                0 0 150px rgba(150, 255, 255, 0.4);
+        }
+    }
+
+    .bubble {
+        position: absolute;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        animation: float 4s ease-in-out infinite, bubblePulse 2s ease-in-out infinite, bubbleGlow 3s ease-in-out infinite;
+        box-shadow: 
+            inset -15px -15px 40px rgba(0, 0, 0, 0.15),
+            inset 15px 15px 40px rgba(255, 255, 255, 0.7),
+            0 15px 40px rgba(0, 0, 0, 0.3),
+            0 0 30px rgba(100, 200, 255, 0.5);
+        background: radial-gradient(circle at 30% 30%, 
+            rgba(255, 255, 255, 0.95) 0%, 
+            rgba(150, 220, 255, 0.7) 25%,
+            rgba(100, 200, 255, 0.5) 50%,
+            rgba(50, 150, 255, 0.4) 75%,
+            rgba(0, 100, 200, 0.3) 100%);
+        filter: brightness(1.1);
+    }
+
+    .bubble::before {
+        content: '';
+        position: absolute;
+        top: 15%;
+        left: 20%;
+        width: 30%;
+        height: 30%;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, transparent 70%);
+        border-radius: 50%;
+        filter: blur(3px);
+        animation: shine 3s ease-in-out infinite;
+    }
+
+    .bubble::after {
+        content: '';
+        position: absolute;
+        top: 10%;
+        right: 15%;
+        width: 20%;
+        height: 20%;
+        background: rgba(255, 255, 255, 0.6);
+        border-radius: 50%;
+        filter: blur(2px);
+        animation: shine 2.5s ease-in-out infinite 0.5s;
+    }
+
+    @keyframes shine {
+        0%, 100% { opacity: 0.6; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.2); }
+    }
+
+    @keyframes bubblePulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+
+    @keyframes bubbleGlow {
+        0%, 100% { 
+            box-shadow: 
+                inset -15px -15px 40px rgba(0, 0, 0, 0.15),
+                inset 15px 15px 40px rgba(255, 255, 255, 0.7),
+                0 15px 40px rgba(0, 0, 0, 0.3),
+                0 0 30px rgba(100, 200, 255, 0.5);
+        }
+        50% { 
+            box-shadow: 
+                inset -15px -15px 40px rgba(0, 0, 0, 0.15),
+                inset 15px 15px 40px rgba(255, 255, 255, 0.8),
+                0 15px 40px rgba(0, 0, 0, 0.3),
+                0 0 50px rgba(150, 255, 255, 0.8);
+        }
+    }
+
+    .bubble:hover {
+        transform: scale(1.15) !important;
+        animation-play-state: paused;
+        box-shadow: 
+            inset -15px -15px 40px rgba(0, 0, 0, 0.15),
+            inset 15px 15px 40px rgba(255, 255, 255, 0.8),
+            0 20px 50px rgba(0, 0, 0, 0.4),
+            0 0 60px rgba(150, 255, 255, 1);
+        filter: brightness(1.2);
+    }
+
+    .bubble .bubble-content {
+        font-size: 2.5rem;
+        color: rgba(0, 50, 100, 0.9);
+        text-shadow: 
+            0 2px 8px rgba(255, 255, 255, 0.8),
+            0 0 20px rgba(100, 200, 255, 0.6);
+        z-index: 2;
+        font-weight: 900;
+        animation: questionMarkPulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes questionMarkPulse {
+        0%, 100% { transform: scale(1); opacity: 0.9; }
+        50% { transform: scale(1.1); opacity: 1; }
+    }
+
+    .bubble.popping {
+        animation: pop 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+        pointer-events: none;
+    }
+
+    @keyframes float {
+        0%, 100% { 
+            transform: translateY(0) translateX(0) rotate(0deg); 
+        }
+        25% { 
+            transform: translateY(-20px) translateX(5px) rotate(5deg); 
+        }
+        50% { 
+            transform: translateY(-10px) translateX(-3px) rotate(-3deg); 
+        }
+        75% { 
+            transform: translateY(-25px) translateX(3px) rotate(4deg); 
+        }
+    }
+
+    @keyframes pop {
+        0% { 
+            transform: scale(1) rotate(0deg); 
+            opacity: 1; 
+            filter: brightness(1);
+        }
+        30% { 
+            transform: scale(1.3) rotate(180deg); 
+            opacity: 0.8; 
+            filter: brightness(1.5);
+        }
+        60% { 
+            transform: scale(1.8) rotate(360deg); 
+            opacity: 0.3; 
+            filter: brightness(2);
+        }
+        100% { 
+            transform: scale(2.5) rotate(540deg); 
+            opacity: 0; 
+            filter: brightness(0);
+        }
+    }
+
+    .bubble-instruction {
+        text-align: center;
+        color: #ffffff;
+        font-size: 1.8rem;
+        margin-bottom: 1.5rem;
+        text-shadow: 
+            0 2px 15px rgba(0, 0, 0, 0.5),
+            0 0 30px rgba(0, 212, 255, 0.6);
+        font-weight: 700;
+        animation: instructionPulse 2s ease-in-out infinite;
+        z-index: 10;
+    }
+
+    @keyframes instructionPulse {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.05); opacity: 0.9; }
+    }
+
+    .bubble-instruction i {
+        margin-right: 0.5rem;
+        color: #00d4ff;
+        animation: handBounce 1s ease-in-out infinite;
+        display: inline-block;
+    }
+
+    @keyframes handBounce {
+        0%, 100% { transform: translateY(0) rotate(0deg); }
+        25% { transform: translateY(-5px) rotate(-10deg); }
+        75% { transform: translateY(-5px) rotate(10deg); }
+    }
+
+    .popped-winners {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1rem;
+        margin-top: 1.5rem;
+        max-width: 90%;
+    }
+
+    .popped-winner {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(240, 248, 255, 0.95));
+        border-radius: 20px;
+        padding: 1.2rem 2rem;
+        display: flex;
+        align-items: center;
+        gap: 1.2rem;
+        box-shadow: 
+            0 8px 30px rgba(0, 0, 0, 0.2),
+            0 0 20px rgba(0, 150, 255, 0.3);
+        animation: winner-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        border: 2px solid rgba(0, 150, 255, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .popped-winner::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+        animation: shineSlide 2s ease-in-out infinite;
+    }
+
+    @keyframes shineSlide {
+        0% { left: -100%; }
+        100% { left: 100%; }
+    }
+
+    @keyframes winner-pop {
+        0% { 
+            transform: scale(0) rotate(-180deg); 
+            opacity: 0; 
+        }
+        50% { 
+            transform: scale(1.15) rotate(10deg); 
+            opacity: 0.8; 
+        }
+        75% { 
+            transform: scale(0.95) rotate(-5deg); 
+        }
+        100% { 
+            transform: scale(1) rotate(0deg); 
+            opacity: 1; 
+        }
+    }
+
+    .popped-winner .winner-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #0033A0, #0055CC, #00a8ff);
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 1.5rem;
+        box-shadow: 
+            0 5px 15px rgba(0, 51, 160, 0.4),
+            inset 0 2px 5px rgba(255, 255, 255, 0.3);
+        animation: avatarGlow 2s ease-in-out infinite;
+        position: relative;
+    }
+
+    @keyframes avatarGlow {
+        0%, 100% { 
+            box-shadow: 
+                0 5px 15px rgba(0, 51, 160, 0.4),
+                inset 0 2px 5px rgba(255, 255, 255, 0.3);
+        }
+        50% { 
+            box-shadow: 
+                0 5px 25px rgba(0, 168, 255, 0.6),
+                inset 0 2px 5px rgba(255, 255, 255, 0.4);
+        }
+    }
+
+    .popped-winner .winner-name {
+        font-weight: 700;
+        font-size: 1.2rem;
+        color: #333;
+    }
+
+    .popped-winner .winner-label {
+        font-size: 0.85rem;
+        color: #666;
+    }
+
+    /* ==================== CS:GO STYLE REEL SPINNER (Grand Prize) ==================== */
+    .csgo-spinner-container {
+        position: relative;
+        width: 95vw;
+        max-width: 1400px;
+        height: 280px;
+        background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+        border-radius: 20px;
+        overflow: hidden;
+        border: 5px solid #FFD700;
+        box-shadow: 
+            0 0 80px rgba(255, 215, 0, 0.5),
+            inset 0 0 150px rgba(0, 0, 0, 0.5);
+    }
+
+    .csgo-spinner-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: 
+            linear-gradient(90deg, #1a1a2e 0%, transparent 10%, transparent 90%, #1a1a2e 100%);
+        z-index: 10;
+        pointer-events: none;
+    }
+
+    .csgo-pointer {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 6px;
+        height: 100%;
+        background: linear-gradient(180deg, #FFD700, #FFA500);
+        z-index: 20;
+        box-shadow: 0 0 30px rgba(255, 215, 0, 1);
+    }
+
+    .csgo-pointer::before,
+    .csgo-pointer::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+    }
+
+    .csgo-pointer::before {
+        top: -8px;
+        border-left: 20px solid transparent;
+        border-right: 20px solid transparent;
+        border-top: 30px solid #FFD700;
+        filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.8));
+    }
+
+    .csgo-pointer::after {
+        bottom: -8px;
+        border-left: 20px solid transparent;
+        border-right: 20px solid transparent;
+        border-bottom: 30px solid #FFD700;
+        filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.8));
+    }
+
+    .csgo-reel {
+        display: flex;
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        transition: transform 6s cubic-bezier(0.15, 0.85, 0.25, 1);
+        will-change: transform;
+    }
+
+    .csgo-item {
+        width: 200px;
+        height: 220px;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        margin: 0 8px;
+        background: linear-gradient(180deg, #2a2a4a 0%, #1a1a2e 100%);
+        border-radius: 15px;
+        border: 3px solid #444;
+        transition: all 0.3s ease;
+    }
+
+    .csgo-item.winner {
+        border-color: #FFD700;
+        background: linear-gradient(180deg, #3a3a5a 0%, #2a2a4a 100%);
+        box-shadow: 0 0 50px rgba(255, 215, 0, 0.6);
+        transform: scale(1.05);
+    }
+
+    @keyframes winner-flash {
+        0%, 100% { 
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.6);
+            border-color: #FFD700;
+        }
+        50% { 
+            box-shadow: 0 0 100px rgba(255, 215, 0, 1), 0 0 150px rgba(255, 215, 0, 0.8);
+            border-color: #ffffff;
+        }
+    }
+
+    .csgo-item-avatar {
+        width: 90px;
+        height: 90px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #FFD700, #FFA500);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1a1a2e;
+        margin-bottom: 15px;
+        border: 4px solid rgba(255, 255, 255, 0.4);
+        box-shadow: 0 5px 20px rgba(255, 215, 0, 0.3);
+        overflow: hidden;
+    }
+
+    .csgo-item-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .csgo-item-name {
+        color: #ffffff;
+        font-size: 1.1rem;
+        font-weight: 600;
+        text-align: center;
+        max-width: 180px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .csgo-glow {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 200px;
+        height: 100%;
+        background: radial-gradient(ellipse at center, rgba(255, 215, 0, 0.2) 0%, transparent 70%);
+        z-index: 5;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+    }
+
+    .csgo-spinner-container.spinning .csgo-glow {
+        opacity: 1;
+        animation: glow-pulse 0.5s ease-in-out infinite;
+    }
+
+    @keyframes glow-pulse {
+        0%, 100% { opacity: 0.5; }
+        50% { opacity: 1; }
+    }
+
+    .csgo-sound-effect {
+        position: absolute;
+        bottom: -40px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: rgba(255, 215, 0, 0.8);
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    /* Winner Count Selection */
+    .winner-count-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .winner-count-section label {
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    .winner-count-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .count-btn {
+        padding: 0.6rem 1.2rem;
+        border-radius: 10px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        background: rgba(0, 51, 160, 0.6);
+        color: white;
+        font-family: 'Prompt', sans-serif;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        min-width: 50px;
+    }
+
+    .count-btn:hover {
+        border-color: #ffffff;
+        background: rgba(0, 51, 160, 0.9);
+    }
+
+    .count-btn.active {
+        background: #ffffff;
+        color: #0033A0;
+        border-color: #ffffff;
+    }
+
+    /* Spin/Start Button */
+    .btn-spin {
+        padding: 1.25rem 3rem;
+        font-size: 1.2rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        border-radius: 50px;
+        background: #0033A0;
+        color: #ffffff;
+        border: 3px solid #ffffff;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-spin:hover:not(:disabled) {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        background: #0044BB;
+    }
+
+    .btn-spin:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .btn-spin.grand {
+        background: linear-gradient(135deg, #FFD700, #FFA500);
+        color: #1a0f00;
+        border-color: #FFD700;
+    }
+
+    .btn-spin.grand:hover:not(:disabled) {
+        box-shadow: 0 10px 40px rgba(255, 215, 0, 0.5);
+    }
+
+    .btn-spin.bubble-create {
+        background: linear-gradient(135deg, #00d4ff, #0088ff);
+        color: #ffffff;
+        border-color: #00d4ff;
+        animation: bubble-pulse 2s ease-in-out infinite;
+    }
+
+    .btn-spin.bubble-create:hover:not(:disabled) {
+        background: linear-gradient(135deg, #00e5ff, #0099ff);
+        box-shadow: 0 10px 40px rgba(0, 212, 255, 0.5);
+    }
+
+    @keyframes bubble-pulse {
+        0%, 100% { box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4); }
+        50% { box-shadow: 0 5px 30px rgba(0, 212, 255, 0.7); }
+    }
+
+    /* GRAND MODE */
+    body.grand-mode .bg-animation {
+        background: 
+            radial-gradient(ellipse at 20% 20%, rgba(255, 215, 0, 0.4) 0%, transparent 50%),
+            radial-gradient(ellipse at 80% 80%, rgba(255, 107, 53, 0.4) 0%, transparent 50%),
+            linear-gradient(180deg, #2a1810 0%, #1a0f00 100%) !important;
+    }
+
+    body.grand-mode .wheel-border {
+        background: linear-gradient(135deg, #FFD700, #FFA500, #FFD700) !important;
+        box-shadow: 0 0 100px rgba(255, 215, 0, 0.8) !important;
+        animation: grand-pulse 1s ease-in-out infinite !important;
+        border-color: #FFD700 !important;
+    }
+
+    @keyframes grand-pulse {
+        0%, 100% { box-shadow: 0 0 80px rgba(255, 215, 0, 0.8); transform: scale(1); }
+        50% { box-shadow: 0 0 120px rgba(255, 215, 0, 1); transform: scale(1.02); }
+    }
+
+    .gold-particle {
+        position: fixed;
+        width: 8px;
+        height: 8px;
+        background: #FFD700;
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 0;
+        animation: float-particle 3s ease-in-out infinite;
+    }
+
+    @keyframes float-particle {
+        0%, 100% { transform: translateY(0); opacity: 0.8; }
+        50% { transform: translateY(-30px); opacity: 1; }
+    }
+
+    /* Winner Modal */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+        backdrop-filter: blur(10px);
+    }
+
+    .modal-overlay.active { display: flex; }
+
+    .modal-content {
+        background: #ffffff;
+        border-radius: 20px;
+        padding: 4rem;
+        text-align: center;
+        max-width: 900px;
+        width: 95%;
+        position: relative;
+        border: 4px solid #0033A0;
+        box-shadow: 0 10px 50px rgba(0, 0, 0, 0.3);
+        animation: modal-pop 0.5s ease;
+        max-height: 90vh;
+        overflow-y: auto;
+        color: #333;
+    }
+
+    @keyframes modal-pop {
+        0% { transform: scale(0.5); opacity: 0; }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-content.grand-prize {
+        border: 4px solid #FFD700;
+        background: linear-gradient(135deg, #2a1810, #1a0f00);
+        box-shadow: 0 0 150px rgba(255, 215, 0, 0.8);
+        color: #ffffff;
+    }
+
+    .modal-close {
+        position: absolute;
+        top: 1.5rem;
+        right: 2rem;
+        font-size: 2.5rem;
+        color: #999;
+        cursor: pointer;
+    }
+
+    .modal-close:hover { color: #333; }
+    .modal-content.grand-prize .modal-close { color: rgba(255, 255, 255, 0.5); }
+    .modal-content.grand-prize .modal-close:hover { color: #ffffff; }
+
+    .winner-icon {
+        font-size: 6rem;
+        margin-bottom: 1.5rem;
+        animation: bounce 0.6s ease infinite;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .winner-icon img {
+        width: 200px;
+        height: 200px;
+        object-fit: contain;
+        border-radius: 20px;
+        box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+        background: rgba(255, 255, 255, 0.1);
+        padding: 10px;
+        animation: bounce 0.6s ease infinite;
+    }
+
+    .winner-icon.grand {
+        background: linear-gradient(135deg, #FFD700, #FFA500);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.5));
+    }
+    
+    .winner-icon.grand img {
+        box-shadow: 0 0 40px rgba(255, 215, 0, 0.8);
+        background: rgba(255, 215, 0, 0.1);
+    }
+
+    .winner-icon.normal {
+        color: #0033A0; 
+        filter: drop-shadow(0 0 20px rgba(0, 51, 160, 0.3));
+    }
+    
+    .winner-icon.normal img {
+        box-shadow: 0 0 30px rgba(0, 51, 160, 0.5);
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .modal-content.normal-prize {
+        background: linear-gradient(135deg, #ffffff 0%, #f0f8ff 100%);
+        border: 3px solid #0033A0;
+    }
+
+    .modal-content.normal-prize .winner-prize-name { color: #0033A0; }
+
+    .winner-item.normal-winner {
+        background: linear-gradient(135deg, #e8f4ff, #d0e8ff);
+        border-left: 4px solid #0033A0;
+    }
+
+    .winner-item.normal-winner .person i {
+        color: #0033A0;
+    }
+
+    @keyframes bounce {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+
+    .winner-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 2rem;
+        font-weight: 800;
+        margin-bottom: 1rem;
+        text-transform: uppercase;
+        color: #0033A0;
+    }
+
+    .winner-title.grand {
+        background: linear-gradient(135deg, #FFD700, #FFA500, #FFD700);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 3rem;
+    }
+
+    .winner-prize-name {
+        font-size: 1.8rem;
+        color: #666;
+        margin-bottom: 2rem;
+    }
+
+    .modal-content.grand-prize .winner-prize-name { color: #FFD700; }
+    
+    .modal-content .btn {
+        font-size: 1.2rem;
+        padding: 1rem 2rem;
+        font-weight: 600;
+    }
+
+    .winner-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .winner-item {
+        background: #f5f7fa;
+        padding: 1.5rem;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        animation: slide-in 0.5s ease;
+        border-left: 4px solid #0033A0;
+    }
+
+    .winner-item.grand-winner {
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(255, 165, 0, 0.3));
+        border: 2px solid #FFD700;
+        border-left: 4px solid #FFD700;
+    }
+
+    @keyframes slide-in {
+        from { transform: translateX(-50px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+
+    .winner-item .person {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        font-weight: 600;
+        color: #333;
+        font-size: 1.4rem;
+    }
+
+    .winner-item.grand-winner .person { color: #fff; }
+    .winner-item .person i { color: #0033A0; font-size: 1.6rem; }
+    .winner-item.grand-winner .person i { color: #FFD700; font-size: 1.6rem; }
+
+    /* Confetti */
+    .confetti {
+        position: fixed;
+        width: 10px;
+        height: 10px;
+        animation: confetti-fall 3s ease-out forwards;
+        z-index: 2001;
+        pointer-events: none;
+    }
+
+    @keyframes confetti-fall {
+        0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+        100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+
+    /* No Data */
+    .no-data {
+        text-align: center;
+        padding: 3rem;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    }
+
+    .no-data i { font-size: 4rem; color: #ccc; margin-bottom: 1rem; }
+    .no-data h3 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #333; }
+    .no-data p { color: #666; margin-bottom: 1.5rem; }
+
+    @media (max-width: 600px) {
+        .wheel-container { width: 320px; height: 320px; }
+        .bubble-container { height: 350px; }
+        .prizes-grid { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="spin-container">
+        <div class="page-title">
+            <h1><i class="fas fa-dice"></i> สุ่มผู้โชคดี</h1>
+            <p>เลือกรางวัล → สุ่มหาผู้โชคดี!</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-cards">
+            <div class="stat-card total">
+                <i class="fas fa-user-friends"></i>
+                <div class="number" id="totalParticipantCount">{{ total_participants }}</div>
+                <div class="label">ผู้เข้าร่วมทั้งหมด</div>
+            </div>
+            <div class="stat-card participants">
+                <i class="fas fa-users"></i>
+                <div class="number" id="participantCount">{{ participants|length }}</div>
+                <div class="label">ผู้รอลุ้นรางวัล</div>
+            </div>
+            <div class="stat-card grand">
+                <i class="fas fa-crown"></i>
+                <div class="number" id="grandPrizeCount">{{ total_grand_remaining }}</div>
+                <div class="label">รางวัลใหญ่</div>
+            </div>
+            <div class="stat-card normal">
+                <i class="fas fa-gift"></i>
+                <div class="number" id="normalPrizeCount">{{ total_normal_remaining }}</div>
+                <div class="label">รางวัลทั่วไป</div>
+            </div>
+        </div>
+
+        {% if participants|length > 0 and (grand_prizes|length > 0 or normal_prizes|length > 0) %}
+        
+        <!-- Step Indicator -->
+        <div class="step-indicator">
+            <div class="step active" id="step1">
+                <span class="step-number">1</span>
+                <span>เลือกรางวัล</span>
+                    </div>
+            <i class="fas fa-chevron-right step-arrow"></i>
+            <div class="step inactive" id="step2">
+                <span class="step-number">2</span>
+                <span>สุ่มผู้โชคดี</span>
+                </div>
+                </div>
+
+        <!-- Step 1: Prize Selection -->
+        <div class="prize-selection" id="prizeSelectionSection">
+            <!-- Search & QR Scanner -->
+            <div class="search-qr-section">
+                <div class="search-box-container">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="prizeSearch" placeholder="ค้นหารางวัล หรือ รหัส QR Code..." oninput="filterPrizes()">
+                </div>
+                <button class="qr-scan-btn" onclick="openQrScanner()">
+                    <i class="fas fa-qrcode"></i> สแกน QR
+                </button>
+            </div>
+            
+            <div class="no-results-message" id="noResultsMessage">
+                <i class="fas fa-search"></i>
+                ไม่พบรางวัลที่ค้นหา
+        </div>
+
+            {% if grand_prizes|length > 0 %}
+            <div class="prize-section-title grand">
+                <i class="fas fa-crown"></i> รางวัลใหญ่ (หมุนวงล้อ)
+            </div>
+            <div class="prizes-grid" id="grandPrizesGrid">
+                {% for prize in grand_prizes %}
+                <div class="prize-card grand {% if prize.remaining == 0 %}disabled{% endif %}" 
+                     data-prize-id="{{ prize.id }}" 
+                     data-prize-name="{{ prize.name }}"
+                     data-qr-code="{{ prize.qr_code }}"
+                     data-image-path="{{ prize.image_path or '' }}"
+                     data-is-grand="true"
+                     data-remaining="{{ prize.remaining }}"
+                     onclick="selectPrize(this)">
+                    <div class="prize-card-color" style="background: {{ prize.color }};"></div>
+                    <div class="prize-card-icon">
+                        {% if prize.image_path %}
+                        <img src="/static/{{ prize.image_path }}" alt="{{ prize.name }}">
+                        {% else %}
+                        <i class="fas fa-crown"></i>
+                        {% endif %}
+                    </div>
+                    <div class="prize-card-name">{{ prize.name }}</div>
+                    {% if prize.qr_code %}<div class="prize-card-qr"><i class="fas fa-qrcode"></i> {{ prize.qr_code }}</div>{% endif %}
+                    <div class="prize-card-remaining">
+                        <span>เหลือ</span>
+                        <span class="count">{{ prize.remaining }} รางวัล</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if normal_prizes|length > 0 %}
+            <div class="prize-section-title normal">
+                <i class="fas fa-gift"></i> รางวัลทั่วไป (แตะฟองสบู่)
+            </div>
+            <div class="prizes-grid" id="normalPrizesGrid">
+                {% for prize in normal_prizes %}
+                <div class="prize-card normal {% if prize.remaining == 0 %}disabled{% endif %}" 
+                     data-prize-id="{{ prize.id }}" 
+                     data-prize-name="{{ prize.name }}"
+                     data-qr-code="{{ prize.qr_code }}"
+                     data-image-path="{{ prize.image_path or '' }}"
+                     data-is-grand="false"
+                     data-remaining="{{ prize.remaining }}"
+                     onclick="selectPrize(this)">
+                    <div class="prize-card-color" style="background: {{ prize.color }};"></div>
+                    <div class="prize-card-icon">
+                        {% if prize.image_path %}
+                        <img src="/static/{{ prize.image_path }}" alt="{{ prize.name }}">
+                        {% else %}
+                        <i class="fas fa-gift"></i>
+                        {% endif %}
+                    </div>
+                    <div class="prize-card-name">{{ prize.name }}</div>
+                    {% if prize.qr_code %}<div class="prize-card-qr"><i class="fas fa-qrcode"></i> {{ prize.qr_code }}</div>{% endif %}
+                    <div class="prize-card-remaining">
+                        <span>เหลือ</span>
+                        <span class="count">{{ prize.remaining }} รางวัล</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Step 2: Game Section -->
+        <div class="game-section" id="gameSection">
+            <!-- Selected Prize Display -->
+            <div class="selected-prize-display" id="selectedPrizeDisplay">
+                <img id="selectedPrizeImage" class="prize-image" src="" alt="Prize Image">
+                <div class="prize-icon" id="selectedPrizeIconContainer">
+                    <i class="fas fa-gift" id="selectedPrizeIcon"></i>
+                </div>
+                <div class="prize-info">
+                    <h3 id="selectedPrizeName">-</h3>
+                    <p id="selectedPrizeRemaining">เหลือ - รางวัล</p>
+                </div>
+                <button class="btn-change-prize" onclick="goBackToSelection()">
+                    <i class="fas fa-exchange-alt"></i> เปลี่ยน
+                </button>
+            </div>
+
+            <!-- Winner Count -->
+            <div class="winner-count-section">
+                <label>จำนวนผู้โชคดี</label>
+                <div class="winner-count-buttons">
+                    <button class="count-btn active" data-count="1" onclick="selectCount(1)">1</button>
+                    <button class="count-btn" data-count="2" onclick="selectCount(2)">2</button>
+                    <button class="count-btn" data-count="3" onclick="selectCount(3)">3</button>
+                    <button class="count-btn" data-count="5" onclick="selectCount(5)">5</button>
+                </div>
+            </div>
+
+            <!-- Create Bubble Button (Normal Prize) -->
+            <div id="createBubbleSection" style="display: none;">
+                <button class="btn-spin bubble-create" id="createBubbleBtn" onclick="createBubbles()">
+                    <i class="fas fa-soap"></i> <span>สร้างฟองสบู่</span>
+                </button>
+            </div>
+
+            <!-- CS:GO Style Spinner (Grand Prize) -->
+            <div id="wheelSection" style="display: none; width: 100%;">
+                <div class="csgo-spinner-container" id="csgoSpinner">
+                    <div class="csgo-glow"></div>
+                    <div class="csgo-pointer"></div>
+                    <div class="csgo-reel" id="csgoReel"></div>
+        </div>
+                <p class="csgo-sound-effect" id="spinSound"></p>
+            </div>
+
+            <!-- Action Button (Grand Prize Only) -->
+            <button class="btn-spin grand" id="spinBtn" style="display: none;" onclick="spinReel()">
+                <i class="fas fa-play"></i> <span id="btnText">หมุน!</span>
+            </button>
+        </div>
+
+        {% else %}
+        <div class="no-data">
+            <i class="fas fa-exclamation-circle"></i>
+            <h3>ยังไม่พร้อมสุ่ม</h3>
+            <p>
+                {% if participants|length == 0 %}ยังไม่มีรายชื่อคน{% endif %}
+                {% if participants|length == 0 and (grand_prizes|length == 0 and normal_prizes|length == 0) %} และ {% endif %}
+                {% if grand_prizes|length == 0 and normal_prizes|length == 0 %}ยังไม่มีรางวัล{% endif %}
+            </p>
+            <a href="/admin" class="btn btn-primary"><i class="fas fa-cog"></i> ไปหน้าจัดการ</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Fullscreen Bubble Section -->
+<div class="bubble-fullscreen" id="bubbleFullscreen">
+    <div class="bubble-header">
+        <div class="bubble-prize-info">
+            <i class="fas fa-gift"></i>
+            <span id="bubblePrizeName">รางวัล</span>
+        </div>
+        <button class="bubble-close-btn" onclick="closeBubbleFullscreen()">
+            <i class="fas fa-times"></i> ปิด
+            </button>
+        </div>
+    <div class="bubble-instruction" id="bubbleInstruction">
+        <i class="fas fa-hand-pointer"></i> แตะฟองสบู่เพื่อเปิดเผยผู้โชคดี!
+    </div>
+    <div class="bubble-container" id="bubbleContainer"></div>
+    <button class="pop-all-btn" id="popAllBtn" onclick="popAllBubbles()">
+        <i class="fas fa-hand-sparkles"></i> แตะฟองสบู่ทั้งหมด
+    </button>
+    <div class="popped-winners" id="poppedWinners"></div>
+</div>
+
+<!-- Winner Modal (for Grand Prize) -->
+<div class="modal-overlay" id="winnerModal">
+    <div class="modal-content grand-prize" id="modalContent">
+        <span class="modal-close" onclick="closeModal()">&times;</span>
+        <div class="winner-icon grand" id="winnerIcon"><i class="fas fa-crown"></i></div>
+        <h2 class="winner-title grand" id="winnerTitle">🎉 รางวัลใหญ่ 🎉</h2>
+        <p class="winner-prize-name" id="winnerPrizeName"></p>
+        <div class="winner-list" id="winnerList"></div>
+        <button class="btn btn-primary" style="margin-top: 1.5rem;" onclick="closeModal()">
+            <i class="fas fa-check"></i> ปิด
+        </button>
+    </div>
+</div>
+
+<!-- QR Scanner Modal -->
+<div class="qr-modal" id="qrModal">
+    <div class="qr-modal-content">
+        <h3 class="qr-modal-title"><i class="fas fa-qrcode"></i> สแกน QR Code</h3>
+        <video id="qrVideo" autoplay playsinline></video>
+        <p class="qr-modal-hint">ส่องกล้องไปที่ QR Code ของรางวัล</p>
+        <button class="qr-close-btn" onclick="closeQrScanner()">
+            <i class="fas fa-times"></i> ปิด
+        </button>
+    </div>
+</div>
+
+<!-- jsQR Library for QR Code scanning -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+
+<script>
+    const participants = {{ participants | tojson | safe }};
+    let participantsCopy = [...participants];
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let selectedPrize = null;
+    let selectedCount = 1;
+    let isProcessing = false;
+    let currentRotation = 0;
+    let goldParticles = [];
+    let pendingWinners = [];
+    let revealedWinners = [];
+    let revealedCount = 0;
+    
+    // ==================== Sound Effects for Grand Prize ====================
+    let audioContext = null;
+    let spinSoundOscillator = null;
+    let spinSoundGainNode = null;
+    let spinSoundIntervals = [];
+    
+    function initAudioContext() {
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        return audioContext;
+    }
+    
+    function playSpinSound() {
+        try {
+            const ctx = initAudioContext();
+            if (ctx.state === 'suspended') {
+                ctx.resume();
+            }
+            
+            const now = ctx.currentTime;
+            
+            // เสียงเริ่มหมุนลอตเตอรี - เสียงกลองต่ำเหมือนถังเริ่มหมุน
+            const oscillator1 = ctx.createOscillator();
+            const gainNode1 = ctx.createGain();
+            oscillator1.connect(gainNode1);
+            gainNode1.connect(ctx.destination);
+            
+            oscillator1.type = 'sine';
+            oscillator1.frequency.setValueAtTime(60, now); // เสียงต่ำเหมือนกลอง
+            oscillator1.frequency.exponentialRampToValueAtTime(80, now + 0.3);
+            
+            gainNode1.gain.setValueAtTime(0.5, now);
+            gainNode1.gain.exponentialRampToValueAtTime(0.6, now + 0.1);
+            gainNode1.gain.exponentialRampToValueAtTime(0.1, now + 0.5);
+            
+            oscillator1.start(now);
+            oscillator1.stop(now + 0.5);
+            
+            // เสียงลูกบอลเริ่มกลิ้ง - เสียงต่ำที่เพิ่มขึ้น
+            const oscillator2 = ctx.createOscillator();
+            const gainNode2 = ctx.createGain();
+            oscillator2.connect(gainNode2);
+            gainNode2.connect(ctx.destination);
+            
+            oscillator2.type = 'triangle';
+            oscillator2.frequency.setValueAtTime(40, now);
+            oscillator2.frequency.exponentialRampToValueAtTime(100, now + 0.4);
+            
+            gainNode2.gain.setValueAtTime(0.3, now);
+            gainNode2.gain.exponentialRampToValueAtTime(0.4, now + 0.2);
+            gainNode2.gain.exponentialRampToValueAtTime(0.05, now + 0.4);
+            
+            oscillator2.start(now);
+            oscillator2.stop(now + 0.4);
+            
+            // เสียงถังหมุน - เสียงต่ำที่เพิ่มขึ้น
+            const oscillator3 = ctx.createOscillator();
+            const gainNode3 = ctx.createGain();
+            oscillator3.connect(gainNode3);
+            gainNode3.connect(ctx.destination);
+            
+            oscillator3.type = 'sawtooth';
+            oscillator3.frequency.setValueAtTime(30, now);
+            oscillator3.frequency.exponentialRampToValueAtTime(70, now + 0.5);
+            
+            gainNode3.gain.setValueAtTime(0.35, now);
+            gainNode3.gain.exponentialRampToValueAtTime(0.45, now + 0.25);
+            gainNode3.gain.exponentialRampToValueAtTime(0.08, now + 0.5);
+            
+            oscillator3.start(now);
+            oscillator3.stop(now + 0.5);
+            
+        } catch (e) {
+            console.log('Audio not available:', e);
+        }
+    }
+    
+    function playWinnerSound() {
+        try {
+            const ctx = initAudioContext();
+            if (ctx.state === 'suspended') {
+                ctx.resume();
+            }
+            
+            // เสียงชนะลอตเตอรี - Fanfare ที่ตื่นเต้น
+            const now = ctx.currentTime;
+            
+            // เสียงหยุดถังหมุน - เสียงต่ำที่ลดลง
+            const oscStop = ctx.createOscillator();
+            const gainStop = ctx.createGain();
+            oscStop.connect(gainStop);
+            gainStop.connect(ctx.destination);
+            oscStop.type = 'sine';
+            oscStop.frequency.setValueAtTime(60, now);
+            oscStop.frequency.exponentialRampToValueAtTime(40, now + 0.2);
+            gainStop.gain.setValueAtTime(0.3, now);
+            gainStop.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+            oscStop.start(now);
+            oscStop.stop(now + 0.2);
+            
+            // โน้ตแรก - C5 (เสียงสูงที่ชัดเจน)
+            const osc1 = ctx.createOscillator();
+            const gain1 = ctx.createGain();
+            osc1.connect(gain1);
+            gain1.connect(ctx.destination);
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(523.25, now + 0.15); // C5
+            gain1.gain.setValueAtTime(0.5, now + 0.15);
+            gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+            osc1.start(now + 0.15);
+            osc1.stop(now + 0.4);
+            
+            // โน้ตที่สอง - E5 (เสียงสูงกว่า)
+            const osc2 = ctx.createOscillator();
+            const gain2 = ctx.createGain();
+            osc2.connect(gain2);
+            gain2.connect(ctx.destination);
+            osc2.type = 'sine';
+            osc2.frequency.setValueAtTime(659.25, now + 0.3); // E5
+            gain2.gain.setValueAtTime(0.5, now + 0.3);
+            gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.55);
+            osc2.start(now + 0.3);
+            osc2.stop(now + 0.55);
+            
+            // โน้ตที่สาม - G5 (เสียงสูงสุด)
+            const osc3 = ctx.createOscillator();
+            const gain3 = ctx.createGain();
+            osc3.connect(gain3);
+            gain3.connect(ctx.destination);
+            osc3.type = 'sine';
+            osc3.frequency.setValueAtTime(783.99, now + 0.45); // G5
+            gain3.gain.setValueAtTime(0.6, now + 0.45);
+            gain3.gain.exponentialRampToValueAtTime(0.01, now + 0.85);
+            osc3.start(now + 0.45);
+            osc3.stop(now + 0.85);
+            
+            // โน้ตที่สี่ - C6 (เสียงสูงสุดสุด - เพิ่มความตื่นเต้น)
+            const osc4 = ctx.createOscillator();
+            const gain4 = ctx.createGain();
+            osc4.connect(gain4);
+            gain4.connect(ctx.destination);
+            osc4.type = 'sine';
+            osc4.frequency.setValueAtTime(1046.50, now + 0.6); // C6
+            gain4.gain.setValueAtTime(0.55, now + 0.6);
+            gain4.gain.exponentialRampToValueAtTime(0.01, now + 1.1);
+            osc4.start(now + 0.6);
+            osc4.stop(now + 1.1);
+            
+            // เสียงต่ำเสริม - เพิ่มความลึกและความตื่นเต้น
+            const oscBass = ctx.createOscillator();
+            const gainBass = ctx.createGain();
+            oscBass.connect(gainBass);
+            gainBass.connect(ctx.destination);
+            oscBass.type = 'triangle';
+            oscBass.frequency.setValueAtTime(261.63, now + 0.1); // C4
+            oscBass.frequency.exponentialRampToValueAtTime(392.00, now + 0.7); // G4
+            gainBass.gain.setValueAtTime(0.35, now + 0.1);
+            gainBass.gain.exponentialRampToValueAtTime(0.4, now + 0.4);
+            gainBass.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
+            oscBass.start(now + 0.1);
+            oscBass.stop(now + 1.0);
+        } catch (e) {
+            console.log('Audio not available:', e);
+        }
+    }
+    
+    function playContinuousSpinSound() {
+        try {
+            const ctx = initAudioContext();
+            if (ctx.state === 'suspended') {
+                ctx.resume();
+            }
+            
+            // หยุดเสียงเก่าถ้ามี
+            stopSpinSound();
+            
+            const now = ctx.currentTime;
+            const startTime = Date.now();
+            
+            // เสียงหมุนลอตเตอรี - เสียงลูกบอลกลิ้งในถังหมุน
+            // เสียงหลัก - เสียงต่ำที่เปลี่ยนแปลงแบบสุ่มเหมือนลูกบอลกลิ้ง
+            const oscillator1 = ctx.createOscillator();
+            const gainNode1 = ctx.createGain();
+            oscillator1.connect(gainNode1);
+            gainNode1.connect(ctx.destination);
+            
+            oscillator1.type = 'sawtooth';
+            oscillator1.frequency.setValueAtTime(50, now);
+            oscillator1.frequency.exponentialRampToValueAtTime(80, now + 0.2);
+            
+            // สร้างเอฟเฟกต์เสียงลูกบอลกลิ้ง - ความถี่เปลี่ยนแปลงแบบสุ่ม
+            const interval1 = setInterval(() => {
+                if (spinSoundOscillator && spinSoundOscillator.osc1 === oscillator1) {
+                    const elapsed = (Date.now() - startTime) / 1000;
+                    // เสียงที่เปลี่ยนแปลงแบบสุ่มเหมือนลูกบอลกลิ้ง
+                    const randomVariation = Math.random() * 30 - 15; // -15 ถึง +15
+                    const freq1 = 60 + Math.sin(elapsed * 2.5) * 25 + Math.sin(elapsed * 5.7) * 15 + randomVariation;
+                    try {
+                        oscillator1.frequency.setValueAtTime(Math.max(30, Math.min(120, freq1)), ctx.currentTime);
+                } catch (e) {}
+                } else {
+                    clearInterval(interval1);
+                }
+            }, 60);
+            
+            gainNode1.gain.setValueAtTime(0.3, now);
+            gainNode1.gain.exponentialRampToValueAtTime(0.35, now + 0.15);
+            
+            oscillator1.start(now);
+            
+            // เสียงถังหมุน - เสียงต่ำที่เพิ่มความเข้มข้น
+            const oscillator2 = ctx.createOscillator();
+            const gainNode2 = ctx.createGain();
+            oscillator2.connect(gainNode2);
+            gainNode2.connect(ctx.destination);
+            
+            oscillator2.type = 'triangle';
+            oscillator2.frequency.setValueAtTime(35, now);
+            
+            // เปลี่ยนแปลงความถี่แบบต่อเนื่อง
+            const interval2 = setInterval(() => {
+                if (spinSoundOscillator && spinSoundOscillator.osc2 === oscillator2) {
+                    const elapsed = (Date.now() - startTime) / 1000;
+                    const freq2 = 40 + Math.cos(elapsed * 1.8) * 20 + Math.cos(elapsed * 4.3) * 10;
+                    try {
+                        oscillator2.frequency.setValueAtTime(Math.max(25, Math.min(70, freq2)), ctx.currentTime);
+                    } catch (e) {}
+                } else {
+                    clearInterval(interval2);
+                }
+            }, 60);
+            
+            gainNode2.gain.setValueAtTime(0.25, now);
+            gainNode2.gain.exponentialRampToValueAtTime(0.3, now + 0.1);
+            
+            oscillator2.start(now);
+            
+            // เสียงลูกบอลกระทบ - เสียงสูงเล็กน้อยที่เพิ่มความตื่นเต้น
+            const oscillator3 = ctx.createOscillator();
+            const gainNode3 = ctx.createGain();
+            oscillator3.connect(gainNode3);
+            gainNode3.connect(ctx.destination);
+            
+            oscillator3.type = 'sine';
+            oscillator3.frequency.setValueAtTime(120, now);
+            
+            // เพิ่มการเปลี่ยนแปลงความถี่แบบต่อเนื่อง
+            const interval3 = setInterval(() => {
+                if (spinSoundOscillator && spinSoundOscillator.osc3 === oscillator3) {
+                    const elapsed = (Date.now() - startTime) / 1000;
+                    // เสียงกระทบที่เกิดขึ้นเป็นระยะ
+                    const impactFreq = 100 + Math.sin(elapsed * 8) * 40 + Math.random() * 20;
+                    try {
+                        oscillator3.frequency.setValueAtTime(Math.max(80, Math.min(180, impactFreq)), ctx.currentTime);
+                        // เพิ่มความดังเป็นระยะเหมือนลูกบอลกระทบ
+                        const impactGain = 0.12 + Math.sin(elapsed * 6) * 0.08 + Math.random() * 0.05;
+                        gainNode3.gain.setValueAtTime(Math.max(0.08, Math.min(0.2, impactGain)), ctx.currentTime);
+                    } catch (e) {}
+                } else {
+                    clearInterval(interval3);
+                }
+            }, 80);
+            
+            gainNode3.gain.setValueAtTime(0.15, now);
+            gainNode3.gain.exponentialRampToValueAtTime(0.18, now + 0.2);
+            
+            oscillator3.start(now);
+            
+            // เก็บ reference ทั้งหมดสำหรับหยุดภายหลัง
+            spinSoundOscillator = { osc1: oscillator1, osc2: oscillator2, osc3: oscillator3 };
+            spinSoundGainNode = { gain1: gainNode1, gain2: gainNode2, gain3: gainNode3 };
+            spinSoundIntervals = [interval1, interval2, interval3];
+            
+            return { oscillator: oscillator1, gainNode: gainNode1 };
+        } catch (e) {
+            console.log('Audio not available:', e);
+            return null;
+        }
+    }
+    
+    function stopSpinSound() {
+        // หยุด intervals ทั้งหมด
+        if (spinSoundIntervals && spinSoundIntervals.length > 0) {
+            spinSoundIntervals.forEach(interval => clearInterval(interval));
+            spinSoundIntervals = [];
+        }
+        
+        if (spinSoundOscillator && spinSoundGainNode) {
+            try {
+                const ctx = initAudioContext();
+                if (ctx) {
+                    // ตรวจสอบว่าเป็น object ที่มีหลาย oscillator หรือไม่
+                    if (typeof spinSoundOscillator === 'object' && spinSoundOscillator.osc1) {
+                        // Fade out เสียงทั้งหมด
+                        const now = ctx.currentTime;
+                        if (spinSoundGainNode.gain1) {
+                            spinSoundGainNode.gain1.gain.setValueAtTime(spinSoundGainNode.gain1.gain.value, now);
+                            spinSoundGainNode.gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                        }
+                        if (spinSoundGainNode.gain2) {
+                            spinSoundGainNode.gain2.gain.setValueAtTime(spinSoundGainNode.gain2.gain.value, now);
+                            spinSoundGainNode.gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                        }
+                        if (spinSoundGainNode.gain3) {
+                            spinSoundGainNode.gain3.gain.setValueAtTime(spinSoundGainNode.gain3.gain.value, now);
+                            spinSoundGainNode.gain3.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                        }
+                        
+                        // หยุด oscillators หลังจาก fade out
+                        setTimeout(() => {
+                            try {
+                                if (spinSoundOscillator && spinSoundOscillator.osc1) {
+                                    spinSoundOscillator.osc1.stop();
+                                    spinSoundOscillator.osc2.stop();
+                                    spinSoundOscillator.osc3.stop();
+                                }
+                            } catch (e) {
+                                console.log('Error stopping oscillators:', e);
+                            }
+                            spinSoundOscillator = null;
+                            spinSoundGainNode = null;
+                        }, 300);
+                    } else {
+                        // รูปแบบเดิม - single oscillator
+                        if (typeof spinSoundGainNode.gain === 'object') {
+                    spinSoundGainNode.gain.setValueAtTime(spinSoundGainNode.gain.value, ctx.currentTime);
+                    spinSoundGainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+                    
+                    setTimeout(() => {
+                        try {
+                                    if (spinSoundOscillator && typeof spinSoundOscillator.stop === 'function') {
+                                spinSoundOscillator.stop();
+                            }
+                        } catch (e) {
+                            console.log('Error stopping oscillator:', e);
+                        }
+                        spinSoundOscillator = null;
+                        spinSoundGainNode = null;
+                    }, 250);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log('Error in stopSpinSound:', e);
+                spinSoundOscillator = null;
+                spinSoundGainNode = null;
+            }
+        } else if (spinSoundOscillator) {
+            // Fallback: หยุดทันทีถ้าไม่มี gainNode
+            try {
+                if (typeof spinSoundOscillator === 'object' && spinSoundOscillator.osc1) {
+                    spinSoundOscillator.osc1.stop();
+                    spinSoundOscillator.osc2.stop();
+                    spinSoundOscillator.osc3.stop();
+                } else if (typeof spinSoundOscillator.stop === 'function') {
+                spinSoundOscillator.stop();
+                }
+            } catch (e) {}
+            spinSoundOscillator = null;
+            spinSoundGainNode = null;
+        }
+    }
+
+    const segmentColors = ['#0033A0', '#0055CC', '#0077DD', '#3399EE', '#0088AA', '#00AACC', '#00CCEE', '#33DDFF'];
+    const bubbleColors = [
+        'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95) 0%, rgba(150,220,255,0.7) 25%, rgba(100,200,255,0.5) 50%, rgba(50,150,255,0.4) 75%, rgba(0,100,200,0.3) 100%)',
+        'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95) 0%, rgba(200,150,255,0.7) 25%, rgba(150,100,255,0.5) 50%, rgba(100,50,200,0.4) 75%, rgba(50,0,150,0.3) 100%)',
+        'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95) 0%, rgba(150,255,220,0.7) 25%, rgba(100,255,200,0.5) 50%, rgba(50,200,150,0.4) 75%, rgba(0,150,100,0.3) 100%)',
+        'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95) 0%, rgba(255,220,150,0.7) 25%, rgba(255,200,100,0.5) 50%, rgba(255,150,50,0.4) 75%, rgba(200,100,0,0.3) 100%)',
+        'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95) 0%, rgba(255,180,220,0.7) 25%, rgba(255,150,200,0.5) 50%, rgba(255,100,150,0.4) 75%, rgba(200,50,100,0.3) 100%)',
+        'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95) 0%, rgba(150,255,255,0.7) 25%, rgba(100,240,255,0.5) 50%, rgba(50,220,255,0.4) 75%, rgba(0,200,255,0.3) 100%)',
+        'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95) 0%, rgba(255,200,255,0.7) 25%, rgba(255,150,255,0.5) 50%, rgba(255,100,255,0.4) 75%, rgba(200,50,200,0.3) 100%)'
+    ];
+
+    function selectPrize(card) {
+        if (card.classList.contains('disabled')) return;
+        
+        document.querySelectorAll('.prize-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        
+        // ดึง imagePath จาก data attribute (kebab-case จะแปลงเป็น camelCase อัตโนมัติ)
+        const imagePath = card.getAttribute('data-image-path') || card.dataset.imagePath || '';
+        
+        selectedPrize = {
+            id: parseInt(card.dataset.prizeId),
+            name: card.dataset.prizeName,
+            imagePath: imagePath,
+            isGrand: card.dataset.isGrand === 'true',
+            remaining: parseInt(card.dataset.remaining)
+        };
+        
+        document.getElementById('selectedPrizeName').textContent = selectedPrize.name;
+        document.getElementById('selectedPrizeRemaining').textContent = `เหลือ ${selectedPrize.remaining} รางวัล`;
+        
+        const display = document.getElementById('selectedPrizeDisplay');
+        const icon = document.getElementById('selectedPrizeIcon');
+        const iconContainer = document.getElementById('selectedPrizeIconContainer');
+        const prizeImage = document.getElementById('selectedPrizeImage');
+        const spinBtn = document.getElementById('spinBtn');
+        const createBubbleBtn = document.getElementById('createBubbleSection');
+        
+        // แสดงรูปภาพรางวัลถ้ามี
+        console.log('Selected Prize:', selectedPrize); // Debug
+        console.log('Image Path:', selectedPrize.imagePath); // Debug
+        
+        if (selectedPrize.imagePath && selectedPrize.imagePath.trim() !== '' && selectedPrize.imagePath !== 'None') {
+            const imageUrl = `/static/${selectedPrize.imagePath}`;
+            prizeImage.src = imageUrl;
+            prizeImage.onload = function() {
+                prizeImage.style.display = 'block';
+                prizeImage.classList.add('show');
+                iconContainer.style.display = 'none';
+                console.log('Prize image loaded successfully:', imageUrl); // Debug
+            };
+            prizeImage.onerror = function() {
+                console.error('Failed to load prize image:', imageUrl); // Debug
+                prizeImage.style.display = 'none';
+                prizeImage.classList.remove('show');
+                iconContainer.style.display = 'flex';
+            };
+        } else {
+            prizeImage.style.display = 'none';
+            prizeImage.classList.remove('show');
+            iconContainer.style.display = 'flex';
+            console.log('No image path, showing icon'); // Debug
+        }
+        
+        if (selectedPrize.isGrand) {
+            // Grand Prize - Show Wheel
+            display.classList.add('grand');
+            icon.className = 'fas fa-crown';
+            spinBtn.style.display = 'block';
+            spinBtn.classList.add('grand');
+            createBubbleBtn.style.display = 'none';
+            document.getElementById('wheelSection').style.display = 'block';
+            buildWheel();
+            activateGrandMode();
+            // Auto-select 1 winner for grand prize
+            selectCount(1);
+        } else {
+            // Normal Prize - Show Create Bubble Button
+            display.classList.remove('grand');
+            icon.className = 'fas fa-gift';
+            spinBtn.style.display = 'none';
+            createBubbleBtn.style.display = 'block';
+            document.getElementById('wheelSection').style.display = 'none';
+            deactivateGrandMode();
+            // Auto-select 1 winner for normal prize too
+            selectCount(1);
+        }
+        
+        showGameSection();
+    }
+
+    function showGameSection() {
+        document.getElementById('prizeSelectionSection').style.display = 'none';
+        document.getElementById('gameSection').classList.add('active');
+        document.getElementById('step1').classList.remove('active');
+        document.getElementById('step1').classList.add('completed');
+        document.getElementById('step2').classList.remove('inactive');
+        document.getElementById('step2').classList.add('active');
+        // Hide stats cards
+        document.querySelector('.stats-cards').style.display = 'none';
+    }
+
+    function goBackToSelection() {
+        document.getElementById('prizeSelectionSection').style.display = 'block';
+        document.getElementById('gameSection').classList.remove('active');
+        document.getElementById('step1').classList.add('active');
+        document.getElementById('step1').classList.remove('completed');
+        document.getElementById('step2').classList.add('inactive');
+        document.getElementById('step2').classList.remove('active');
+        document.getElementById('bubbleContainer').innerHTML = '';
+        document.getElementById('poppedWinners').innerHTML = '';
+        document.getElementById('bubbleFullscreen').classList.remove('active');
+        document.getElementById('createBubbleSection').style.display = 'none';
+        document.getElementById('createBubbleBtn').disabled = false;
+        document.getElementById('spinBtn').style.display = 'none';
+        
+        // Reset prize image display
+        const prizeImage = document.getElementById('selectedPrizeImage');
+        const iconContainer = document.getElementById('selectedPrizeIconContainer');
+        if (prizeImage) {
+            prizeImage.classList.remove('show');
+            prizeImage.src = '';
+        }
+        if (iconContainer) {
+            iconContainer.style.display = 'flex';
+        }
+        
+        // Show stats cards again
+        document.querySelector('.stats-cards').style.display = 'flex';
+        deactivateGrandMode();
+        isProcessing = false;
+        pendingWinners = [];
+        revealedCount = 0;
+        selectedCount = 0;
+        document.querySelectorAll('.count-btn').forEach(btn => btn.classList.remove('active'));
+    }
+
+    function selectCount(count) {
+        if (!selectedPrize) return;
+        const maxCount = Math.min(selectedPrize.remaining, participantsCopy.length);
+        if (count > maxCount) {
+            alert(`ไม่สามารถเลือก ${count} ผู้โชคดีได้`);
+            return;
+        }
+        selectedCount = count;
+        document.querySelectorAll('.count-btn').forEach(btn => {
+            btn.classList.toggle('active', parseInt(btn.dataset.count) === count);
+        });
+    }
+
+    function buildWheel() {
+        buildReel();
+    }
+
+    function buildReel() {
+        const reel = document.getElementById('csgoReel');
+        const container = document.getElementById('csgoSpinner');
+        
+        if (!reel || !container) return;
+        
+        reel.innerHTML = '';
+        reel.style.transition = 'none';
+        reel.style.transform = 'translateY(-50%) translateX(0)';
+        
+        if (!participantsCopy || participantsCopy.length === 0) {
+            console.log('No participants to build reel');
+            return;
+        }
+
+        // Create multiple copies for smooth spinning effect (like CS:GO)
+        const totalCopies = Math.max(60, participantsCopy.length * 6);
+        
+        for (let i = 0; i < totalCopies; i++) {
+            const person = participantsCopy[i % participantsCopy.length];
+            if (!person || !person.name) continue;
+            
+            const avatarContent = person.image_path 
+                ? `<img src="/static/${person.image_path}" alt="${person.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`
+                : person.name.charAt(0).toUpperCase();
+            
+            const item = document.createElement('div');
+            item.className = 'csgo-item';
+            item.dataset.participantId = person.id;
+            item.innerHTML = `
+                <div class="csgo-item-avatar">${avatarContent}</div>
+                <div class="csgo-item-name">${person.name.length > 15 ? person.name.substring(0, 13) + '...' : person.name}</div>
+            `;
+            reel.appendChild(item);
+        }
+        
+        // Position reel - left edge starts at container center
+        const containerWidth = container.offsetWidth;
+        reel.style.left = `${containerWidth / 2}px`;
+    }
+
+    function startGame() {
+        if (isProcessing || !selectedPrize) return;
+        
+        if (participantsCopy.length < selectedCount) {
+            alert(`มีผู้เข้าร่วมไม่เพียงพอ`);
+            return;
+        }
+
+        if (selectedPrize.isGrand) {
+            spinWheel();
+        } else {
+            createBubbles();
+        }
+    }
+
+    // ==================== BUBBLE GAME ====================
+    function createBubbles() {
+        if (!selectedPrize) {
+            alert('กรุณาเลือกรางวัลก่อน');
+            return;
+        }
+        if (selectedCount === 0) {
+            alert('กรุณาเลือกจำนวนผู้โชคดี');
+            return;
+        }
+        
+        isProcessing = true;
+        revealedWinners = []; // Reset revealed winners
+        document.getElementById('createBubbleBtn').disabled = true;
+        
+        // Show fullscreen bubble
+        document.getElementById('bubbleFullscreen').classList.add('active');
+        document.getElementById('bubblePrizeName').textContent = selectedPrize.name;
+        document.getElementById('bubbleContainer').innerHTML = '';
+        document.getElementById('poppedWinners').innerHTML = '';
+        document.getElementById('bubbleInstruction').innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังสุ่มและสร้างฟองสบู่...';
+        
+        // Call API to get winners
+        fetch('/api/spin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prize_id: selectedPrize.id, count: selectedCount })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                pendingWinners = data.results;
+                revealedCount = 0;
+                
+                // Update prize remaining
+                selectedPrize.remaining = data.prize_remaining;
+                document.getElementById('selectedPrizeRemaining').textContent = `เหลือ ${data.prize_remaining} รางวัล`;
+                
+                // Create bubbles
+                const container = document.getElementById('bubbleContainer');
+                const containerRect = container.getBoundingClientRect();
+                
+                pendingWinners.forEach((winner, index) => {
+                    setTimeout(() => {
+                        const bubble = createBubble(winner, index, containerRect.width, containerRect.height);
+                        container.appendChild(bubble);
+                        
+                        if (index === pendingWinners.length - 1) {
+                            document.getElementById('bubbleInstruction').innerHTML = 
+                                '<i class="fas fa-hand-pointer"></i> แตะฟองสบู่เพื่อเปิดเผยผู้โชคดี!';
+                        }
+                    }, index * 300);
+                });
+            } else {
+                alert(data.error || 'เกิดข้อผิดพลาด');
+                isProcessing = false;
+                document.getElementById('spinBtn').disabled = false;
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+            isProcessing = false;
+            document.getElementById('spinBtn').disabled = false;
+        });
+    }
+
+    function createBubble(winner, index, containerWidth, containerHeight) {
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        
+        // Varied sizes for visual interest
+        const size = 90 + Math.random() * 50;
+        bubble.style.width = size + 'px';
+        bubble.style.height = size + 'px';
+        
+        // Random position with better distribution
+        const maxX = containerWidth - size - 40;
+        const maxY = containerHeight - size - 40;
+        bubble.style.left = (40 + Math.random() * maxX) + 'px';
+        bubble.style.top = (40 + Math.random() * maxY) + 'px';
+        
+        // Use random color from array for variety
+        const colorIndex = Math.floor(Math.random() * bubbleColors.length);
+        bubble.style.background = bubbleColors[colorIndex];
+        
+        // Varied animation delays for natural movement
+        bubble.style.animationDelay = (Math.random() * 3) + 's';
+        
+        // Add random rotation for more dynamic look
+        const initialRotation = Math.random() * 360;
+        bubble.style.transform = `rotate(${initialRotation}deg)`;
+        
+        bubble.innerHTML = `<div class="bubble-content">?</div>`;
+        bubble.dataset.winnerIndex = index;
+        
+        bubble.onclick = () => popBubble(bubble, winner);
+        
+        return bubble;
+    }
+
+    function popBubble(bubble, winner) {
+        if (bubble.classList.contains('popping')) return;
+        
+        bubble.classList.add('popping');
+        
+        // Create ripple effect
+        createRippleEffect(bubble);
+        
+        // Create enhanced splash particles
+        createSplashParticles(bubble);
+        
+        // Create sparkles
+        createSparkles(bubble);
+        
+        setTimeout(() => {
+            bubble.remove();
+            revealWinner(winner);
+            revealedCount++;
+            
+            // Check if all bubbles popped
+            if (revealedCount === pendingWinners.length) {
+                setTimeout(() => {
+                    finishBubbleGame();
+                }, 500);
+            }
+        }, 600);
+    }
+
+    function createRippleEffect(bubble) {
+        const rect = bubble.getBoundingClientRect();
+        const container = document.getElementById('bubbleContainer');
+        const containerRect = container.getBoundingClientRect();
+        const centerX = rect.left - containerRect.left + rect.width / 2;
+        const centerY = rect.top - containerRect.top + rect.height / 2;
+        
+        for (let i = 0; i < 3; i++) {
+            const ripple = document.createElement('div');
+            ripple.style.cssText = `
+                position: absolute;
+                width: ${rect.width}px;
+                height: ${rect.height}px;
+                left: ${centerX - rect.width / 2}px;
+                top: ${centerY - rect.height / 2}px;
+                border: 3px solid rgba(255, 255, 255, 0.8);
+                border-radius: 50%;
+                pointer-events: none;
+                z-index: 99;
+            `;
+            container.appendChild(ripple);
+            
+            ripple.animate([
+                { transform: 'scale(1)', opacity: 0.8 },
+                { transform: `scale(${3 + i})`, opacity: 0 }
+            ], { 
+                duration: 600, 
+                easing: 'ease-out',
+                delay: i * 100
+            });
+            
+            setTimeout(() => ripple.remove(), 600 + i * 100);
+        }
+    }
+
+    function createSplashParticles(bubble) {
+        const rect = bubble.getBoundingClientRect();
+        const container = document.getElementById('bubbleContainer');
+        const containerRect = container.getBoundingClientRect();
+        const centerX = rect.left - containerRect.left + rect.width / 2;
+        const centerY = rect.top - containerRect.top + rect.height / 2;
+        
+        const colors = [
+            'rgba(100, 200, 255, 0.9)',
+            'rgba(150, 220, 255, 0.9)',
+            'rgba(200, 240, 255, 0.9)',
+            'rgba(255, 255, 255, 0.9)',
+            'rgba(0, 212, 255, 0.8)'
+        ];
+        
+        for (let i = 0; i < 20; i++) {
+            const particle = document.createElement('div');
+            const size = 8 + Math.random() * 12;
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            
+            particle.style.cssText = `
+                position: absolute;
+                width: ${size}px;
+                height: ${size}px;
+                background: ${color};
+                border-radius: 50%;
+                left: ${centerX}px;
+                top: ${centerY}px;
+                pointer-events: none;
+                z-index: 100;
+                box-shadow: 0 0 ${size}px ${color};
+            `;
+            container.appendChild(particle);
+            
+            const angle = (i / 20) * Math.PI * 2 + Math.random() * 0.5;
+            const distance = 60 + Math.random() * 80;
+            const dx = Math.cos(angle) * distance;
+            const dy = Math.sin(angle) * distance;
+            const rotation = Math.random() * 360;
+            
+            particle.animate([
+                { 
+                    transform: `translate(0, 0) scale(1) rotate(0deg)`, 
+                    opacity: 1 
+                },
+                { 
+                    transform: `translate(${dx}px, ${dy}px) scale(0) rotate(${rotation}deg)`, 
+                    opacity: 0 
+                }
+            ], { 
+                duration: 800 + Math.random() * 200, 
+                easing: 'cubic-bezier(0.4, 0, 0.2, 1)' 
+            });
+            
+            setTimeout(() => particle.remove(), 1000);
+        }
+    }
+
+    function createSparkles(bubble) {
+        const rect = bubble.getBoundingClientRect();
+        const container = document.getElementById('bubbleContainer');
+        const containerRect = container.getBoundingClientRect();
+        const centerX = rect.left - containerRect.left + rect.width / 2;
+        const centerY = rect.top - containerRect.top + rect.height / 2;
+        
+        for (let i = 0; i < 8; i++) {
+            const sparkle = document.createElement('div');
+            sparkle.style.cssText = `
+                position: absolute;
+                width: 4px;
+                height: 20px;
+                background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.9), transparent);
+                left: ${centerX}px;
+                top: ${centerY}px;
+                pointer-events: none;
+                z-index: 101;
+                transform-origin: center;
+            `;
+            container.appendChild(sparkle);
+            
+            const angle = (i / 8) * Math.PI * 2;
+            const distance = 40 + Math.random() * 30;
+            const dx = Math.cos(angle) * distance;
+            const dy = Math.sin(angle) * distance;
+            
+            sparkle.animate([
+                { 
+                    transform: `translate(0, 0) rotate(${angle * 180 / Math.PI}deg) scaleY(1)`, 
+                    opacity: 1 
+                },
+                { 
+                    transform: `translate(${dx}px, ${dy}px) rotate(${angle * 180 / Math.PI + 180}deg) scaleY(0)`, 
+                    opacity: 0 
+                }
+            ], { 
+                duration: 600, 
+                easing: 'ease-out' 
+            });
+            
+            setTimeout(() => sparkle.remove(), 600);
+        }
+    }
+
+    function revealWinner(winner) {
+        // Add to revealed winners list
+        revealedWinners.push(winner);
+        
+        // Find participant to get image_path
+        const participant = participantsCopy.find(p => p.id === winner.winner_id);
+        const avatarContent = participant && participant.image_path
+            ? `<img src="/static/${participant.image_path}" alt="${winner.winner_name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`
+            : winner.winner_name[0];
+        
+        const container = document.getElementById('poppedWinners');
+        const winnerEl = document.createElement('div');
+        winnerEl.className = 'popped-winner';
+        winnerEl.innerHTML = `
+            <div class="winner-avatar">${avatarContent}</div>
+            <div>
+                <div class="winner-name">${winner.winner_name}</div>
+                <div class="winner-label"><i class="fas fa-gift"></i> ${selectedPrize.name}</div>
+            </div>
+        `;
+        container.appendChild(winnerEl);
+        
+        // Remove from local participants
+        const idx = participantsCopy.findIndex(p => p.id === winner.winner_id);
+        if (idx > -1) participantsCopy.splice(idx, 1);
+        
+        createConfetti(false, 30);
+    }
+
+    function popAllBubbles() {
+        const bubbles = document.querySelectorAll('.bubble:not(.popped)');
+        if (bubbles.length === 0) return;
+        
+        document.getElementById('popAllBtn').disabled = true;
+        document.getElementById('bubbleInstruction').innerHTML = '<i class="fas fa-magic"></i> กำลังเปิดเผยทั้งหมด...';
+        
+        // Pop each bubble with a small delay for effect
+        bubbles.forEach((bubble, index) => {
+            setTimeout(() => {
+                if (!bubble.classList.contains('popped')) {
+                    bubble.click();
+                }
+            }, index * 300); // 300ms delay between each pop
+        });
+    }
+
+    function finishBubbleGame() {
+        // Update stats
+        document.getElementById('participantCount').textContent = participantsCopy.length;
+        const normalCount = parseInt(document.getElementById('normalPrizeCount').textContent) - revealedWinners.length;
+        document.getElementById('normalPrizeCount').textContent = normalCount;
+        
+        // Update prize card
+        const prizeCard = document.querySelector(`[data-prize-id="${selectedPrize.id}"]`);
+        if (prizeCard) {
+            prizeCard.dataset.remaining = selectedPrize.remaining;
+            prizeCard.querySelector('.count').textContent = `${selectedPrize.remaining} รางวัล`;
+            if (selectedPrize.remaining === 0) {
+                prizeCard.classList.add('disabled');
+            }
+        }
+        
+        isProcessing = false;
+        document.getElementById('createBubbleBtn').disabled = false;
+        
+        // Close bubble fullscreen and show winners modal
+        closeBubbleFullscreen();
+        showBubbleWinners(revealedWinners);
+        
+        pendingWinners = [];
+        revealedWinners = [];
+    }
+    
+    function showBubbleWinners(winners) {
+        const modal = document.getElementById('winnerModal');
+        const modalContent = document.getElementById('modalContent');
+        const winnerIcon = document.getElementById('winnerIcon');
+        const winnerTitle = document.getElementById('winnerTitle');
+        const winnerPrizeName = document.getElementById('winnerPrizeName');
+        const winnerList = document.getElementById('winnerList');
+        
+        // Style for normal prize
+        modalContent.classList.remove('grand-prize');
+        modalContent.classList.add('normal-prize');
+        winnerIcon.className = 'winner-icon normal';
+        
+        // ดึงข้อมูลรูปภาพรางวัลจาก selectedPrize หรือจาก prizeCard element
+        let prizeImagePath = null;
+        console.log('showBubbleWinners - selectedPrize:', selectedPrize); // Debug
+        
+        if (selectedPrize && selectedPrize.imagePath) {
+            prizeImagePath = selectedPrize.imagePath;
+            console.log('Using imagePath from selectedPrize:', prizeImagePath); // Debug
+        } else if (selectedPrize && selectedPrize.id) {
+            // ถ้าไม่มี imagePath ใน selectedPrize ให้ดึงจาก prizeCard element
+            const prizeCard = document.querySelector(`[data-prize-id="${selectedPrize.id}"]`);
+            if (prizeCard) {
+                prizeImagePath = prizeCard.getAttribute('data-image-path') || prizeCard.dataset.imagePath || '';
+                console.log('Using imagePath from prizeCard:', prizeImagePath); // Debug
+            }
+        }
+        
+        // แสดงรูปภาพรางวัลถ้ามี หรือแสดงไอคอนถ้าไม่มี
+        if (prizeImagePath && prizeImagePath.trim() !== '' && prizeImagePath !== 'None' && prizeImagePath !== 'null' && prizeImagePath !== 'undefined') {
+            const imageUrl = `/static/${prizeImagePath}`;
+            winnerIcon.innerHTML = `<img src="${imageUrl}" alt="${selectedPrize ? selectedPrize.name : 'Prize'}" onerror="this.parentElement.innerHTML='<i class=\\'fas fa-gift\\'></i>';">`;
+            console.log('Showing prize image:', imageUrl); // Debug
+        } else {
+        winnerIcon.innerHTML = '<i class="fas fa-gift"></i>';
+            console.log('No prize image, showing gift icon. ImagePath:', prizeImagePath, 'selectedPrize:', selectedPrize); // Debug
+        }
+        
+        winnerTitle.className = 'winner-title normal';
+        winnerTitle.textContent = '🎉 ยินดีด้วย! 🎉';
+        
+        winnerPrizeName.innerHTML = `<i class="fas fa-gift"></i> ${selectedPrize.name}`;
+        winnerList.innerHTML = '';
+        
+        winners.forEach((winner, index) => {
+            // Find participant to get image_path
+            const participant = participantsCopy.find(p => p.id === winner.winner_id) || 
+                               participants.find(p => p.id === winner.winner_id);
+            const avatarContent = participant && participant.image_path
+                ? `<img src="/static/${participant.image_path}" alt="${winner.winner_name}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; margin-right: 10px;">`
+                : `<i class="fas fa-user"></i>`;
+            
+            const item = document.createElement('div');
+            item.className = 'winner-item normal-winner';
+            item.style.animationDelay = `${index * 0.1}s`;
+            item.innerHTML = `
+                <div class="person">
+                    ${avatarContent}
+                    <span>${winner.winner_name}</span>
+                </div>
+            `;
+            winnerList.appendChild(item);
+        });
+        
+        modal.classList.add('active');
+        createConfetti(false, 100);
+    }
+    
+    function closeBubbleFullscreen() {
+        document.getElementById('bubbleFullscreen').classList.remove('active');
+        document.getElementById('bubbleContainer').innerHTML = '';
+        document.getElementById('poppedWinners').innerHTML = '';
+        
+        // Reset selection
+        selectedCount = 0;
+        document.querySelectorAll('.count-btn').forEach(btn => btn.classList.remove('active'));
+        isProcessing = false;
+    }
+
+    // ==================== CS:GO STYLE REEL SPIN (Grand Prize) ====================
+    let grandWinnersQueue = [];
+    let allGrandWinners = [];
+    let excludedWinnerIds = []; // Track winners to exclude from reel
+    
+    function spinReel() {
+        if (!selectedPrize) {
+            alert('กรุณาเลือกรางวัลก่อน');
+            return;
+        }
+        if (selectedCount === 0) {
+            alert('กรุณาเลือกจำนวนผู้โชคดี');
+            return;
+        }
+        if (isProcessing) return;
+        
+        isProcessing = true;
+        excludedWinnerIds = []; // Reset excluded list
+        document.getElementById('spinBtn').disabled = true;
+        document.getElementById('csgoSpinner').classList.add('spinning');
+        activateGrandMode();
+        
+        // เล่นเสียงเมื่อเริ่มหมุนรางวัลใหญ่
+        playSpinSound();
+        playContinuousSpinSound();
+
+        // Call API first to get all winners
+        fetch('/api/spin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prize_id: selectedPrize.id, count: selectedCount })
+        })
+        .then(r => r.json())
+        .then(data => {
+                if (data.success) {
+                allGrandWinners = data.results;
+                grandWinnersQueue = [...data.results];
+                
+                // Update stats
+                selectedPrize.remaining = data.prize_remaining;
+                document.getElementById('selectedPrizeRemaining').textContent = `เหลือ ${data.prize_remaining} รางวัล`;
+                
+                const grandCount = parseInt(document.getElementById('grandPrizeCount').textContent) - data.results.length;
+                document.getElementById('grandPrizeCount').textContent = grandCount;
+                
+                const prizeCard = document.querySelector(`[data-prize-id="${selectedPrize.id}"]`);
+                if (prizeCard) {
+                    prizeCard.dataset.remaining = data.prize_remaining;
+                    prizeCard.querySelector('.count').textContent = `${data.prize_remaining} รางวัล`;
+                    if (data.prize_remaining === 0) prizeCard.classList.add('disabled');
+                }
+                
+                // Build reel and start spinning
+                buildReelForSpin();
+                spinNextWinner();
+                    } else {
+                stopSpinSound();
+                document.getElementById('csgoSpinner').classList.remove('spinning');
+                alert(data.error || 'เกิดข้อผิดพลาด');
+                deactivateGrandMode();
+                isProcessing = false;
+                document.getElementById('spinBtn').disabled = false;
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            stopSpinSound();
+            document.getElementById('csgoSpinner').classList.remove('spinning');
+            alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+            deactivateGrandMode();
+            isProcessing = false;
+            document.getElementById('spinBtn').disabled = false;
+        });
+    }
+    
+    function buildReelForSpin() {
+        const reel = document.getElementById('csgoReel');
+        const container = document.getElementById('csgoSpinner');
+        
+        if (!reel || !container) return;
+        
+        reel.innerHTML = '';
+        reel.style.transition = 'none';
+        reel.style.transform = 'translateY(-50%) translateX(0)';
+        
+        // Filter out already won participants
+        const availableParticipants = participantsCopy.filter(p => !excludedWinnerIds.includes(p.id));
+        
+        if (availableParticipants.length === 0) {
+            console.log('No available participants');
+            return;
+        }
+
+        // Create multiple copies for smooth spinning effect
+        const totalCopies = Math.max(60, availableParticipants.length * 6);
+        
+        for (let i = 0; i < totalCopies; i++) {
+            const person = availableParticipants[i % availableParticipants.length];
+            const item = document.createElement('div');
+            item.className = 'csgo-item';
+            item.dataset.participantId = person.id;
+            const avatarContent = person.image_path 
+                ? `<img src="/static/${person.image_path}" alt="${person.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`
+                : person.name.charAt(0).toUpperCase();
+            item.innerHTML = `
+                <div class="csgo-item-avatar">${avatarContent}</div>
+                <div class="csgo-item-name">${person.name.length > 15 ? person.name.substring(0, 13) + '...' : person.name}</div>
+            `;
+            reel.appendChild(item);
+        }
+        
+        // Position reel
+        const containerWidth = container.offsetWidth;
+        reel.style.left = `${containerWidth / 2}px`;
+    }
+    
+    function spinNextWinner() {
+        if (grandWinnersQueue.length === 0) {
+            // All winners revealed - show final popup
+            stopSpinSound();
+            document.getElementById('csgoSpinner').classList.remove('spinning');
+            
+            // Now actually remove winners from participantsCopy
+            allGrandWinners.forEach(w => {
+                const idx = participantsCopy.findIndex(p => p.id === w.winner_id);
+                if (idx > -1) participantsCopy.splice(idx, 1);
+            });
+            
+            document.getElementById('participantCount').textContent = participantsCopy.length;
+            
+            showGrandWinners(allGrandWinners);
+            
+            // Reset and rebuild
+            excludedWinnerIds = [];
+            buildReel();
+            
+            isProcessing = false;
+            document.getElementById('spinBtn').disabled = false;
+            
+            if (selectedPrize.remaining === 0) {
+                setTimeout(() => goBackToSelection(), 500);
+            }
+            return;
+        }
+        
+        const winner = grandWinnersQueue.shift();
+        const isMultiple = allGrandWinners.length > 1;
+        const spinDuration = isMultiple ? 3 : 5;
+        
+        animateReelToWinner(winner, spinDuration, () => {
+            // Add to excluded list (don't modify participantsCopy yet)
+            excludedWinnerIds.push(winner.winner_id);
+            
+            if (grandWinnersQueue.length > 0) {
+                // Rebuild reel without this winner, then spin next
+                setTimeout(() => {
+                    buildReelForSpin();
+                    setTimeout(() => spinNextWinner(), 300);
+                }, 1200);
+                } else {
+                // Last winner - show popup
+                setTimeout(() => spinNextWinner(), 1000);
+            }
+        });
+    }
+
+    function animateReelToWinner(winner, duration, callback) {
+        const reel = document.getElementById('csgoReel');
+        const container = document.getElementById('csgoSpinner');
+        const items = reel.querySelectorAll('.csgo-item');
+        const containerWidth = container.offsetWidth;
+        const containerCenter = containerWidth / 2;
+        
+        // Find all indices where this winner appears
+        let winnerIndices = [];
+        items.forEach((item, idx) => {
+            if (parseInt(item.dataset.participantId) === winner.winner_id) {
+                winnerIndices.push(idx);
+            }
+        });
+        
+        // Safety check
+        if (winnerIndices.length === 0) {
+            console.error('Winner not found in reel:', winner);
+            callback();
+            return;
+        }
+        
+        // Pick a winner index - use middle one for consistent positioning
+        const middleIdx = Math.floor(winnerIndices.length / 2);
+        const targetIndex = winnerIndices[middleIdx];
+        const winnerItem = items[targetIndex];
+        
+        if (!winnerItem) {
+            console.error('Winner item not found at index:', targetIndex);
+            callback();
+            return;
+        }
+        
+        // Verify the winner item matches
+        const winnerItemId = parseInt(winnerItem.dataset.participantId);
+        if (winnerItemId !== winner.winner_id) {
+            console.error('Winner ID mismatch! Expected:', winner.winner_id, 'Got:', winnerItemId);
+        }
+        
+        // Get current reel left position
+        const reelLeft = parseFloat(reel.style.left) || (containerWidth / 2);
+        
+        // Get current transform X
+        const currentTransform = reel.style.transform || 'translateY(-50%) translateX(0px)';
+        const currentX = parseFloat(currentTransform.match(/translateX\(([^)]+)\)/)?.[1] || '0');
+        
+        // Calculate the absolute position of winner item center relative to container
+        // offsetLeft is relative to reel, so we need: reelLeft + currentX + itemLeft + itemWidth/2
+        const winnerItemLeft = winnerItem.offsetLeft;
+        const winnerItemWidth = winnerItem.offsetWidth;
+        const winnerItemCenterAbsolute = reelLeft + currentX + winnerItemLeft + (winnerItemWidth / 2);
+        
+        // Calculate how much we need to move the reel (translateX)
+        // We want: winnerItemCenterAbsolute + translateX = containerCenter
+        // So: translateX = containerCenter - winnerItemCenterAbsolute
+        const exactCenterOffset = containerCenter - winnerItemCenterAbsolute;
+        
+        // First: Fast spin with overshoot (go past the target)
+        const overshootAmount = 50 + Math.random() * 70;
+        const overshootOffset = exactCenterOffset - overshootAmount;
+        
+        // Use provided duration
+        const spinDuration = duration || 5;
+        const snapTime = spinDuration * 1000;
+        
+        // Start spinning animation from current position
+        reel.style.transition = `transform ${spinDuration}s cubic-bezier(0.1, 0.8, 0.2, 1)`;
+        reel.style.transform = `translateY(-50%) translateX(${currentX + overshootOffset}px)`;
+        
+        // Snap back to EXACT center with bounce effect
+            setTimeout(() => {
+            reel.style.transition = 'transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            reel.style.transform = `translateY(-50%) translateX(${exactCenterOffset}px)`;
+        }, snapTime);
+        
+            // Highlight winner after snap animation completes
+        setTimeout(() => {
+            // หยุดเสียงหมุนและเล่นเสียงชนะ
+            stopSpinSound();
+            playWinnerSound();
+            
+            // Use getBoundingClientRect to find which item is actually at center
+            const containerRect = container.getBoundingClientRect();
+            const containerCenterX = containerRect.left + (containerRect.width / 2);
+            
+            let centeredItem = null;
+            let minDistance = Infinity;
+            
+            items.forEach((item) => {
+                const itemRect = item.getBoundingClientRect();
+                const itemCenterX = itemRect.left + (itemRect.width / 2);
+                const distance = Math.abs(itemCenterX - containerCenterX);
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    centeredItem = item;
+                }
+            });
+            
+            // Clear all winner classes first
+            items.forEach(item => {
+                item.classList.remove('winner');
+                item.style.animation = '';
+            });
+            
+            // Verify the centered item matches the winner
+            if (centeredItem && parseInt(centeredItem.dataset.participantId) === winner.winner_id) {
+                centeredItem.classList.add('winner');
+                centeredItem.style.animation = 'winner-flash 0.5s ease 3';
+                console.log('✅ Correct winner highlighted:', winner.winner_name);
+            } else {
+                // Fallback to winnerItem if centered item doesn't match
+                winnerItem.classList.add('winner');
+                winnerItem.style.animation = 'winner-flash 0.5s ease 3';
+                console.warn('⚠️ Centered item mismatch. Expected:', winner.winner_id, 
+                           'Got:', centeredItem ? parseInt(centeredItem.dataset.participantId) : 'null');
+            }
+            
+            createConfetti(true, allGrandWinners.length > 1 ? 50 : 100);
+            callback();
+        }, snapTime + 800);
+    }
+    
+    // Keep old function name for compatibility
+    function spinWheel() {
+        spinReel();
+    }
+
+    function showGrandWinners(results) {
+        const modal = document.getElementById('winnerModal');
+        const modalContent = document.getElementById('modalContent');
+        const winnerIcon = document.getElementById('winnerIcon');
+        const winnerTitle = document.getElementById('winnerTitle');
+        const winnerPrizeName = document.getElementById('winnerPrizeName');
+        const winnerList = document.getElementById('winnerList');
+
+        // Set grand prize styling
+        modalContent.classList.remove('normal-prize');
+            modalContent.classList.add('grand-prize');
+            winnerIcon.className = 'winner-icon grand';
+        
+        // ดึงข้อมูลรูปภาพรางวัลจาก selectedPrize หรือจาก prizeCard element
+        let prizeImagePath = null;
+        console.log('showGrandWinners - selectedPrize:', selectedPrize); // Debug
+        
+        if (selectedPrize && selectedPrize.imagePath) {
+            prizeImagePath = selectedPrize.imagePath;
+            console.log('Using imagePath from selectedPrize:', prizeImagePath); // Debug
+        } else if (selectedPrize && selectedPrize.id) {
+            // ถ้าไม่มี imagePath ใน selectedPrize ให้ดึงจาก prizeCard element
+            const prizeCard = document.querySelector(`[data-prize-id="${selectedPrize.id}"]`);
+            if (prizeCard) {
+                prizeImagePath = prizeCard.getAttribute('data-image-path') || prizeCard.dataset.imagePath || '';
+                console.log('Using imagePath from prizeCard:', prizeImagePath); // Debug
+            }
+        }
+        
+        // แสดงรูปภาพรางวัลถ้ามี หรือแสดงไอคอนมงกุฎถ้าไม่มี
+        if (prizeImagePath && prizeImagePath.trim() !== '' && prizeImagePath !== 'None' && prizeImagePath !== 'null' && prizeImagePath !== 'undefined') {
+            const imageUrl = `/static/${prizeImagePath}`;
+            winnerIcon.innerHTML = `<img src="${imageUrl}" alt="${selectedPrize ? selectedPrize.name : 'Prize'}" onerror="this.parentElement.innerHTML='<i class=\\'fas fa-crown\\'></i>';">`;
+            console.log('Showing prize image:', imageUrl); // Debug
+        } else {
+        winnerIcon.innerHTML = '<i class="fas fa-crown"></i>';
+            console.log('No prize image, showing crown icon. ImagePath:', prizeImagePath, 'selectedPrize:', selectedPrize); // Debug
+        }
+        
+            winnerTitle.className = 'winner-title grand';
+            winnerTitle.textContent = '🎉 รางวัลใหญ่ 🎉';
+
+        winnerPrizeName.innerHTML = `<i class="fas fa-crown"></i> ${selectedPrize ? selectedPrize.name : ''}`;
+        winnerList.innerHTML = '';
+        
+        results.forEach((result, index) => {
+            // Find participant to get image_path
+            const participant = participantsCopy.find(p => p.id === result.winner_id) || 
+                               participants.find(p => p.id === result.winner_id);
+            const avatarContent = participant && participant.image_path
+                ? `<img src="/static/${participant.image_path}" alt="${result.winner_name}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; margin-right: 10px;">`
+                : `<i class="fas fa-crown"></i>`;
+            
+            const item = document.createElement('div');
+            item.className = 'winner-item grand-winner';
+            item.style.animationDelay = `${index * 0.15}s`;
+            item.innerHTML = `
+                <div class="person">
+                    ${avatarContent}
+                    <span>${result.winner_name}</span>
+                </div>
+            `;
+            winnerList.appendChild(item);
+        });
+
+        modal.classList.add('active');
+        createConfetti(true, 150);
+    }
+
+    function closeModal() {
+        document.getElementById('winnerModal').classList.remove('active');
+        // Reset modal to default grand-prize styling for next use
+        document.getElementById('modalContent').className = 'modal-content grand-prize';
+        document.querySelectorAll('.confetti').forEach(c => c.remove());
+        deactivateGrandMode();
+        
+        // Always go back to prize selection
+        goBackToSelection();
+    }
+
+    function activateGrandMode() {
+        document.body.classList.add('grand-mode');
+        for (let i = 0; i < 20; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'gold-particle';
+            particle.style.left = Math.random() * 100 + 'vw';
+            particle.style.top = Math.random() * 100 + 'vh';
+            particle.style.animationDelay = Math.random() * 3 + 's';
+            document.body.appendChild(particle);
+            goldParticles.push(particle);
+        }
+    }
+
+    function deactivateGrandMode() {
+        document.body.classList.remove('grand-mode');
+        goldParticles.forEach(p => p.remove());
+        goldParticles = [];
+    }
+
+    function createConfetti(isGrand, count) {
+        const colors = isGrand 
+            ? ['#ffd700', '#ff6b35', '#ffaa00', '#fff'] 
+            : ['#0033A0', '#00d4ff', '#00ff88', '#fff'];
+        
+        for (let i = 0; i < count; i++) {
+            setTimeout(() => {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.width = (Math.random() * 10 + 5) + 'px';
+                confetti.style.height = confetti.style.width;
+                confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+                document.body.appendChild(confetti);
+                setTimeout(() => confetti.remove(), 4000);
+            }, i * 20);
+        }
+    }
+
+    // ==================== SEARCH & QR CODE ====================
+    function filterPrizes() {
+        const searchValue = document.getElementById('prizeSearch').value.toLowerCase().trim();
+        const grandCards = document.querySelectorAll('#grandPrizesGrid .prize-card');
+        const normalCards = document.querySelectorAll('#normalPrizesGrid .prize-card');
+        const grandSection = document.querySelector('.prize-section-title.grand')?.parentElement;
+        const normalSection = document.querySelector('.prize-section-title.normal')?.parentElement;
+        
+        let grandVisible = 0;
+        let normalVisible = 0;
+        
+        grandCards.forEach(card => {
+            const name = card.dataset.prizeName.toLowerCase();
+            const qrCode = (card.dataset.qrCode || '').toLowerCase();
+            const matches = name.includes(searchValue) || qrCode.includes(searchValue);
+            card.style.display = matches ? '' : 'none';
+            if (matches) grandVisible++;
+        });
+        
+        normalCards.forEach(card => {
+            const name = card.dataset.prizeName.toLowerCase();
+            const qrCode = (card.dataset.qrCode || '').toLowerCase();
+            const matches = name.includes(searchValue) || qrCode.includes(searchValue);
+            card.style.display = matches ? '' : 'none';
+            if (matches) normalVisible++;
+        });
+        
+        // Show/hide section titles based on results
+        if (grandSection) {
+            const titleEl = grandSection.querySelector('.prize-section-title.grand');
+            const gridEl = document.getElementById('grandPrizesGrid');
+            if (titleEl) titleEl.style.display = grandVisible > 0 ? '' : 'none';
+            if (gridEl) gridEl.style.display = grandVisible > 0 ? '' : 'none';
+        }
+        
+        if (normalSection) {
+            const titleEl = document.querySelector('.prize-section-title.normal');
+            const gridEl = document.getElementById('normalPrizesGrid');
+            if (titleEl) titleEl.style.display = normalVisible > 0 ? '' : 'none';
+            if (gridEl) gridEl.style.display = normalVisible > 0 ? '' : 'none';
+        }
+        
+        // Show no results message
+        const noResults = document.getElementById('noResultsMessage');
+        noResults.classList.toggle('visible', grandVisible === 0 && normalVisible === 0 && searchValue.length > 0);
+        
+        // Auto-select if exact QR code match
+        if (searchValue.length > 0) {
+            const allCards = [...grandCards, ...normalCards];
+            const exactMatch = allCards.find(card => {
+                const qrCode = (card.dataset.qrCode || '').toLowerCase();
+                return qrCode === searchValue && parseInt(card.dataset.remaining) > 0;
+            });
+            if (exactMatch && !exactMatch.classList.contains('selected')) {
+                selectPrize(exactMatch);
+            }
+        }
+    }
+    
+    // ==================== QR SCANNER ====================
+    let qrScanner = null;
+    
+    function openQrScanner() {
+        const modal = document.getElementById('qrModal');
+        modal.classList.add('active');
+        startQrScanner();
+    }
+    
+    function closeQrScanner() {
+        const modal = document.getElementById('qrModal');
+        modal.classList.remove('active');
+        stopQrScanner();
+    }
+    
+    async function startQrScanner() {
+        const video = document.getElementById('qrVideo');
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: 'environment' } 
+            });
+            video.srcObject = stream;
+            video.play();
+            
+            // Simple QR scanning using canvas
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            qrScanner = setInterval(() => {
+                if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    
+                    // Use jsQR library if available
+                    if (typeof jsQR !== 'undefined') {
+                        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const code = jsQR(imageData.data, imageData.width, imageData.height);
+                        if (code) {
+                            handleQrCode(code.data);
+                        }
+                    }
+                }
+            }, 200);
+        } catch (err) {
+            console.error('Camera error:', err);
+            alert('ไม่สามารถเข้าถึงกล้องได้ กรุณาอนุญาตการใช้งานกล้อง');
+            closeQrScanner();
+        }
+    }
+    
+    function stopQrScanner() {
+        if (qrScanner) {
+            clearInterval(qrScanner);
+            qrScanner = null;
+        }
+        const video = document.getElementById('qrVideo');
+        if (video.srcObject) {
+            video.srcObject.getTracks().forEach(track => track.stop());
+            video.srcObject = null;
+        }
+    }
+    
+    function handleQrCode(code) {
+        document.getElementById('prizeSearch').value = code;
+        filterPrizes();
+        closeQrScanner();
+        
+        // Vibrate on success
+        if (navigator.vibrate) navigator.vibrate(200);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        if (participantsCopy.length > 0) buildWheel();
+    });
+
+    document.getElementById('winnerModal')?.addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+
+    document.getElementById('qrModal')?.addEventListener('click', function(e) {
+        if (e.target === this) closeQrScanner();
+    });
+</script>
+{% endblock %}

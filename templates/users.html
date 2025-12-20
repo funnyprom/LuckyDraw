@@ -1,0 +1,993 @@
+{% extends 'base.html' %}
+
+{% block title %}จัดการผู้ใช้ - Lucky Draw{% endblock %}
+
+{% block extra_css %}
+<style>
+    .users-container {
+        padding: 2rem 0;
+    }
+
+    .page-title {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .page-title h1 {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 2.5rem;
+        font-weight: 900;
+        color: #ffffff;
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .page-title p {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 1.2rem;
+        margin-top: 0.5rem;
+    }
+
+    .users-grid {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 2rem;
+    }
+
+    @media (max-width: 1024px) {
+        .users-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Add User Section */
+    .add-section {
+        position: sticky;
+        top: 120px;
+    }
+
+    .section-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .section-title i {
+        color: #0033A0;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #333;
+    }
+
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        padding: 1rem;
+        border-radius: 12px;
+        border: 2px solid #e0e0e0;
+        background: #f9f9f9;
+        color: #333;
+        font-family: 'Prompt', sans-serif;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+        outline: none;
+        border-color: #0033A0;
+        box-shadow: 0 0 15px rgba(0, 51, 160, 0.15);
+        background: #ffffff;
+    }
+
+    .form-group select option {
+        background: #ffffff;
+        color: #333;
+    }
+
+    .btn-full {
+        width: 100%;
+    }
+
+    /* User Type Toggle */
+    .user-type-toggle {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .type-btn {
+        flex: 1;
+        padding: 1rem;
+        border-radius: 12px;
+        border: 2px solid #e0e0e0;
+        background: #f9f9f9;
+        color: #666;
+        font-family: 'Prompt', sans-serif;
+        font-size: 0.95rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+    }
+
+    .type-btn:hover {
+        border-color: #0033A0;
+    }
+
+    .type-btn.active.admin {
+        background: #0033A0;
+        border-color: #0033A0;
+        color: #ffffff;
+    }
+
+    .type-btn.active.guest {
+        background: #DAA520;
+        border-color: #DAA520;
+        color: #ffffff;
+    }
+
+    .type-btn i {
+        display: block;
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Stats Row */
+    .stats-row {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .stat-mini {
+        flex: 1;
+        min-width: 80px;
+        padding: 1rem;
+        border-radius: 12px;
+        text-align: center;
+        background: #f5f7fa;
+        border-left: 4px solid #0033A0;
+    }
+
+    .stat-mini .number {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #0033A0;
+    }
+
+    .stat-mini.admin .number {
+        color: #0055CC;
+    }
+
+    .stat-mini.admin {
+        border-left-color: #0055CC;
+    }
+
+    .stat-mini.guest .number {
+        color: #DAA520;
+    }
+
+    .stat-mini.guest {
+        border-left-color: #DAA520;
+    }
+
+    .stat-mini .label {
+        font-size: 0.8rem;
+        color: #666;
+        margin-top: 0.25rem;
+    }
+
+    /* Users List */
+    .list-section {
+        overflow: hidden;
+    }
+
+    .list-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .search-box {
+        display: flex;
+        align-items: center;
+        background: #f9f9f9;
+        border: 2px solid #e0e0e0;
+        border-radius: 50px;
+        padding: 0.5rem 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .search-box:focus-within {
+        border-color: #0033A0;
+    }
+
+    .search-box i {
+        color: #999;
+        margin-right: 0.75rem;
+    }
+
+    .search-box input {
+        background: none;
+        border: none;
+        color: #333;
+        font-family: 'Prompt', sans-serif;
+        font-size: 1rem;
+        width: 200px;
+    }
+
+    .search-box input:focus {
+        outline: none;
+    }
+
+    .search-box input::placeholder {
+        color: #aaa;
+    }
+
+    /* User Cards */
+    .users-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        max-height: 600px;
+        overflow-y: auto;
+        padding-right: 0.5rem;
+    }
+
+    .user-card {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 12px;
+        padding: 1.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        border: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .user-card:hover {
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        transform: translateX(5px);
+    }
+
+    .user-card.admin {
+        border-left: 4px solid #0033A0;
+    }
+
+    .user-card.guest {
+        border-left: 4px solid #DAA520;
+    }
+
+    .user-card.inactive {
+        opacity: 0.5;
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .user-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-weight: 700;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+        color: #ffffff;
+    }
+
+    .user-card.admin .user-avatar {
+        background: #0033A0;
+    }
+
+    .user-card.guest .user-avatar {
+        background: #DAA520;
+    }
+
+    .user-details {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .user-name {
+        font-weight: 600;
+        font-size: 1.1rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: #333;
+    }
+
+    .user-meta {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.85rem;
+        color: #999;
+        margin-top: 0.25rem;
+        flex-wrap: wrap;
+    }
+
+    .user-meta span {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+
+    .user-meta .type-badge {
+        padding: 0.2rem 0.6rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .user-meta .type-badge.admin {
+        background: #0033A0;
+        color: white;
+    }
+
+    .user-meta .type-badge.guest {
+        background: #DAA520;
+        color: #ffffff;
+    }
+
+    .user-meta .status-badge {
+        padding: 0.2rem 0.6rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .user-meta .status-badge.active {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+
+    .user-meta .status-badge.inactive {
+        background: #ffe5e5;
+        color: #e74c3c;
+    }
+
+    .user-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn-action {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .btn-edit {
+        background: #e3f2fd;
+        color: #0033A0;
+    }
+
+    .btn-edit:hover {
+        background: #0033A0;
+        color: white;
+    }
+
+    .btn-password {
+        background: #fff8e1;
+        color: #DAA520;
+    }
+
+    .btn-password:hover {
+        background: #DAA520;
+        color: #ffffff;
+    }
+
+    .btn-delete {
+        background: #ffe5e5;
+        color: #e74c3c;
+    }
+
+    .btn-delete:hover {
+        background: #e74c3c;
+        color: white;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 2rem;
+        background: #f9f9f9;
+        border-radius: 15px;
+        border: 2px dashed #ddd;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        color: #ccc;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state h3 {
+        font-size: 1.3rem;
+        margin-bottom: 0.5rem;
+        color: #666;
+    }
+
+    .empty-state p {
+        color: #999;
+    }
+
+    /* Modal */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+        backdrop-filter: blur(10px);
+    }
+
+    .modal-overlay.active {
+        display: flex;
+    }
+
+    .modal-content {
+        background: #ffffff;
+        border-radius: 15px;
+        padding: 2rem;
+        max-width: 500px;
+        width: 90%;
+        border: none;
+        box-shadow: 0 10px 50px rgba(0, 0, 0, 0.3);
+        animation: modal-pop 0.3s ease;
+    }
+
+    @keyframes modal-pop {
+        0% { transform: scale(0.9); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .modal-header h3 {
+        font-size: 1.3rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #333;
+    }
+
+    .modal-header h3 i {
+        color: #0033A0;
+    }
+
+    .modal-close {
+        font-size: 1.5rem;
+        color: #999;
+        cursor: pointer;
+        transition: color 0.3s ease;
+    }
+
+    .modal-close:hover {
+        color: #333;
+    }
+
+    .modal-footer {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        margin-top: 1.5rem;
+    }
+
+    /* Password Strength */
+    .password-wrapper {
+        position: relative;
+    }
+
+    .password-toggle {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: #999;
+        cursor: pointer;
+        font-size: 1rem;
+    }
+
+    .password-toggle:hover {
+        color: #333;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container users-container">
+    <div class="page-title">
+        <h1><i class="fas fa-users-cog"></i> จัดการผู้ใช้</h1>
+        <p>เพิ่ม แก้ไข และจัดการสิทธิ์ผู้ใช้งานระบบ</p>
+    </div>
+
+    <div class="users-grid">
+        <!-- Add User Section -->
+        <div class="add-section">
+            <div class="card">
+                <h3 class="section-title">
+                    <i class="fas fa-user-plus"></i> เพิ่มผู้ใช้ใหม่
+                </h3>
+
+                <form id="addUserForm" onsubmit="addUser(event)">
+                    <div class="form-group">
+                        <label for="newUsername"><i class="fas fa-user"></i> ชื่อผู้ใช้ (Username)</label>
+                        <input type="text" id="newUsername" placeholder="กรอกชื่อผู้ใช้" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="newDisplayName"><i class="fas fa-id-card"></i> ชื่อที่แสดง</label>
+                        <input type="text" id="newDisplayName" placeholder="กรอกชื่อที่ต้องการแสดง">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="newPassword"><i class="fas fa-lock"></i> รหัสผ่าน</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="newPassword" placeholder="กรอกรหัสผ่าน" required>
+                            <button type="button" class="password-toggle" onclick="togglePassword('newPassword', this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: rgba(255, 255, 255, 0.8);">
+                        <i class="fas fa-shield-alt"></i> สิทธิ์การเข้าถึง
+                    </label>
+                    <div class="user-type-toggle">
+                        <div class="type-btn active admin" data-type="admin" onclick="selectUserType('admin')">
+                            <i class="fas fa-crown"></i>
+                            Admin
+                        </div>
+                        <div class="type-btn guest" data-type="guest" onclick="selectUserType('guest')">
+                            <i class="fas fa-user"></i>
+                            Guest
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-full">
+                        <i class="fas fa-plus"></i> เพิ่มผู้ใช้
+                    </button>
+                </form>
+            </div>
+
+            <!-- Permission Info -->
+            <div class="card" style="margin-top: 1.5rem;">
+                <h3 class="section-title">
+                    <i class="fas fa-info-circle"></i> สิทธิ์การเข้าถึง
+                </h3>
+                <div style="font-size: 0.9rem; color: rgba(255, 255, 255, 0.7);">
+                    <p style="margin-bottom: 1rem;">
+                        <strong style="color: var(--neon-pink);"><i class="fas fa-crown"></i> Admin</strong><br>
+                        - เข้าถึงได้ทุกหน้า<br>
+                        - สุ่มรางวัล จัดการข้อมูล<br>
+                        - จัดการผู้ใช้งาน
+                    </p>
+                    <p>
+                        <strong style="color: var(--gold);"><i class="fas fa-user"></i> Guest</strong><br>
+                        - ดูผลรางวัลได้อย่างเดียว<br>
+                        - ไม่สามารถแก้ไขข้อมูลได้
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users List Section -->
+        <div class="list-section card">
+            <div class="list-header">
+                <h3 class="section-title" style="margin-bottom: 0;">
+                    <i class="fas fa-users"></i> รายชื่อผู้ใช้
+                </h3>
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchUser" placeholder="ค้นหาผู้ใช้..." oninput="filterUsers()">
+                </div>
+            </div>
+
+            <div class="stats-row">
+                <div class="stat-mini">
+                    <div class="number" id="totalUsers">{{ users|length }}</div>
+                    <div class="label">ทั้งหมด</div>
+                </div>
+                <div class="stat-mini admin">
+                    <div class="number" id="adminCount">{{ users|selectattr('user_type', 'equalto', 'admin')|list|length }}</div>
+                    <div class="label">Admin</div>
+                </div>
+                <div class="stat-mini guest">
+                    <div class="number" id="guestCount">{{ users|selectattr('user_type', 'equalto', 'guest')|list|length }}</div>
+                    <div class="label">Guest</div>
+                </div>
+            </div>
+
+            <div class="users-list" id="usersList">
+                {% if users|length > 0 %}
+                    {% for user in users %}
+                    <div class="user-card {{ user.user_type }} {% if not user.is_active %}inactive{% endif %}" 
+                         data-id="{{ user.id }}" 
+                         data-username="{{ user.username|lower }}"
+                         data-name="{{ (user.display_name or '')|lower }}">
+                        <div class="user-info">
+                            <div class="user-avatar">
+                                {% if user.user_type == 'admin' %}
+                                <i class="fas fa-crown"></i>
+                                {% else %}
+                                {{ (user.display_name or user.username)[0]|upper }}
+                                {% endif %}
+                            </div>
+                            <div class="user-details">
+                                <div class="user-name">{{ user.display_name or user.username }}</div>
+                                <div class="user-meta">
+                                    <span><i class="fas fa-at"></i> {{ user.username }}</span>
+                                    <span class="type-badge {{ user.user_type }}">
+                                        {{ 'Admin' if user.user_type == 'admin' else 'Guest' }}
+                                    </span>
+                                    <span class="status-badge {{ 'active' if user.is_active else 'inactive' }}">
+                                        {{ 'เปิดใช้งาน' if user.is_active else 'ปิดใช้งาน' }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="user-actions">
+                            <button class="btn-action btn-edit" title="แก้ไขข้อมูล" onclick="openEditModal({{ user.id }})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-action btn-password" title="เปลี่ยนรหัสผ่าน" onclick="openPasswordModal({{ user.id }}, '{{ user.username }}')">
+                                <i class="fas fa-key"></i>
+                            </button>
+                            <button class="btn-action btn-delete" title="ลบผู้ใช้" onclick="deleteUser({{ user.id }}, '{{ user.username }}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-user-plus"></i>
+                        <h3>ยังไม่มีผู้ใช้</h3>
+                        <p>เพิ่มผู้ใช้ใหม่เพื่อเริ่มต้นใช้งาน</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-user-edit"></i> แก้ไขข้อมูลผู้ใช้</h3>
+            <span class="modal-close" onclick="closeEditModal()">&times;</span>
+        </div>
+        <form id="editUserForm" onsubmit="saveUserEdit(event)">
+            <input type="hidden" id="editUserId">
+            
+            <div class="form-group">
+                <label for="editUsername"><i class="fas fa-user"></i> ชื่อผู้ใช้ (Username)</label>
+                <input type="text" id="editUsername" placeholder="กรอกชื่อผู้ใช้" required>
+            </div>
+
+            <div class="form-group">
+                <label for="editDisplayName"><i class="fas fa-id-card"></i> ชื่อที่แสดง</label>
+                <input type="text" id="editDisplayName" placeholder="กรอกชื่อที่ต้องการแสดง">
+            </div>
+
+            <div class="form-group">
+                <label><i class="fas fa-shield-alt"></i> สิทธิ์การเข้าถึง</label>
+                <select id="editUserType">
+                    <option value="admin">Admin - เข้าถึงได้ทุกหน้า</option>
+                    <option value="guest">Guest - ดูผลรางวัลเท่านั้น</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label><i class="fas fa-toggle-on"></i> สถานะ</label>
+                <select id="editIsActive">
+                    <option value="true">เปิดใช้งาน</option>
+                    <option value="false">ปิดใช้งาน</option>
+                </select>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" onclick="closeEditModal()">
+                    <i class="fas fa-times"></i> ยกเลิก
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> บันทึก
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal-overlay" id="passwordModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-key"></i> เปลี่ยนรหัสผ่าน</h3>
+            <span class="modal-close" onclick="closePasswordModal()">&times;</span>
+        </div>
+        <form id="passwordForm" onsubmit="savePassword(event)">
+            <input type="hidden" id="passwordUserId">
+            
+            <p style="color: rgba(255, 255, 255, 0.7); margin-bottom: 1.5rem;">
+                เปลี่ยนรหัสผ่านสำหรับ: <strong id="passwordUsername" style="color: var(--neon-blue);"></strong>
+            </p>
+
+            <div class="form-group">
+                <label for="newUserPassword"><i class="fas fa-lock"></i> รหัสผ่านใหม่</label>
+                <div class="password-wrapper">
+                    <input type="password" id="newUserPassword" placeholder="กรอกรหัสผ่านใหม่" required minlength="4">
+                    <button type="button" class="password-toggle" onclick="togglePassword('newUserPassword', this)">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword"><i class="fas fa-lock"></i> ยืนยันรหัสผ่าน</label>
+                <div class="password-wrapper">
+                    <input type="password" id="confirmPassword" placeholder="กรอกรหัสผ่านอีกครั้ง" required minlength="4">
+                    <button type="button" class="password-toggle" onclick="togglePassword('confirmPassword', this)">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" onclick="closePasswordModal()">
+                    <i class="fas fa-times"></i> ยกเลิก
+                </button>
+                <button type="submit" class="btn btn-gold">
+                    <i class="fas fa-key"></i> เปลี่ยนรหัสผ่าน
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let selectedUserType = 'admin';
+
+    // Select user type for new user
+    function selectUserType(type) {
+        selectedUserType = type;
+        document.querySelectorAll('.type-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`[data-type="${type}"]`).classList.add('active');
+    }
+
+    // Toggle password visibility
+    function togglePassword(inputId, btn) {
+        const input = document.getElementById(inputId);
+        const icon = btn.querySelector('i');
+        
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
+
+    // Add new user
+    function addUser(e) {
+        e.preventDefault();
+        
+        const username = document.getElementById('newUsername').value;
+        const displayName = document.getElementById('newDisplayName').value;
+        const password = document.getElementById('newPassword').value;
+        
+        if (password.length < 4) {
+            alert('รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร');
+            return;
+        }
+        
+        fetch('/api/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: username,
+                display_name: displayName,
+                password: password,
+                user_type: selectedUserType,
+                is_active: true
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert(data.error || 'เกิดข้อผิดพลาด');
+            }
+        })
+        .catch(err => {
+            alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+        });
+    }
+
+    // Filter users
+    function filterUsers() {
+        const search = document.getElementById('searchUser').value.toLowerCase();
+        const cards = document.querySelectorAll('.user-card');
+        
+        cards.forEach(card => {
+            const username = card.dataset.username;
+            const name = card.dataset.name;
+            const match = username.includes(search) || name.includes(search);
+            card.style.display = match ? 'flex' : 'none';
+        });
+    }
+
+    // Open edit modal
+    function openEditModal(userId) {
+        fetch(`/api/users/${userId}`)
+            .then(r => r.json())
+            .then(user => {
+                document.getElementById('editUserId').value = user.id;
+                document.getElementById('editUsername').value = user.username;
+                document.getElementById('editDisplayName').value = user.display_name || '';
+                document.getElementById('editUserType').value = user.user_type;
+                document.getElementById('editIsActive').value = user.is_active ? 'true' : 'false';
+                document.getElementById('editModal').classList.add('active');
+            });
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').classList.remove('active');
+    }
+
+    // Save user edit
+    function saveUserEdit(e) {
+        e.preventDefault();
+        
+        const userId = document.getElementById('editUserId').value;
+        const data = {
+            username: document.getElementById('editUsername').value,
+            display_name: document.getElementById('editDisplayName').value,
+            user_type: document.getElementById('editUserType').value,
+            is_active: document.getElementById('editIsActive').value === 'true'
+        };
+        
+        fetch(`/api/users/${userId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+        .then(r => r.json())
+        .then(result => {
+            if (result.success) {
+                window.location.reload();
+            } else {
+                alert(result.error || 'เกิดข้อผิดพลาด');
+            }
+        });
+    }
+
+    // Open password modal
+    function openPasswordModal(userId, username) {
+        document.getElementById('passwordUserId').value = userId;
+        document.getElementById('passwordUsername').textContent = username;
+        document.getElementById('newUserPassword').value = '';
+        document.getElementById('confirmPassword').value = '';
+        document.getElementById('passwordModal').classList.add('active');
+    }
+
+    function closePasswordModal() {
+        document.getElementById('passwordModal').classList.remove('active');
+    }
+
+    // Save password
+    function savePassword(e) {
+        e.preventDefault();
+        
+        const userId = document.getElementById('passwordUserId').value;
+        const newPassword = document.getElementById('newUserPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        
+        if (newPassword !== confirmPassword) {
+            alert('รหัสผ่านไม่ตรงกัน');
+            return;
+        }
+        
+        if (newPassword.length < 4) {
+            alert('รหัสผ่านต้องมีอย่างน้อย 4 ตัวอักษร');
+            return;
+        }
+        
+        fetch(`/api/users/${userId}/password`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: newPassword })
+        })
+        .then(r => r.json())
+        .then(result => {
+            if (result.success) {
+                alert('เปลี่ยนรหัสผ่านเรียบร้อยแล้ว');
+                closePasswordModal();
+            } else {
+                alert(result.error || 'เกิดข้อผิดพลาด');
+            }
+        });
+    }
+
+    // Delete user
+    function deleteUser(userId, username) {
+        if (!confirm(`ต้องการลบผู้ใช้ "${username}" หรือไม่?`)) return;
+        
+        fetch(`/api/users/${userId}`, { method: 'DELETE' })
+            .then(r => r.json())
+            .then(result => {
+                if (result.success) {
+                    document.querySelector(`[data-id="${userId}"]`).remove();
+                } else {
+                    alert(result.error || 'เกิดข้อผิดพลาด');
+                }
+            });
+    }
+
+    // Close modals on overlay click
+    document.getElementById('editModal').addEventListener('click', function(e) {
+        if (e.target === this) closeEditModal();
+    });
+    
+    document.getElementById('passwordModal').addEventListener('click', function(e) {
+        if (e.target === this) closePasswordModal();
+    });
+</script>
+{% endblock %}
+
