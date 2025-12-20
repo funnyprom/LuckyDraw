@@ -714,5 +714,27 @@ def delete_user(id):
     db.session.commit()
     return jsonify({'success': True})
 
+# ==================== API Routes - Results Check ====================
+@app.route('/api/results/check', methods=['GET'])
+@login_required
+def check_results_update():
+    """ตรวจสอบว่ามีข้อมูลเปลี่ยนแปลงหรือไม่"""
+    # ดึงข้อมูลปัจจุบัน
+    history_count = DrawHistory.query.count()
+    non_winners_count = Participant.query.filter_by(is_winner=False).count()
+    all_prizes = Prize.query.all()
+    unclaimed_prizes_count = len([p for p in all_prizes if p.remaining > 0])
+    
+    # หา timestamp ของ history ล่าสุด
+    latest_history = DrawHistory.query.order_by(DrawHistory.created_at.desc()).first()
+    latest_timestamp = latest_history.created_at.isoformat() if latest_history else None
+    
+    return jsonify({
+        'history_count': history_count,
+        'non_winners_count': non_winners_count,
+        'unclaimed_prizes_count': unclaimed_prizes_count,
+        'latest_timestamp': latest_timestamp
+    })
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

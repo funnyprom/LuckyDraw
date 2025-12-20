@@ -692,33 +692,99 @@
         searchInput.focus();
     }
 
-    // Auto-refresh หน้าทุก 5 วินาที
-    let refreshInterval;
-    function startAutoRefresh() {
-        // Refresh ทุก 5 วินาที (5000 milliseconds)
-        refreshInterval = setInterval(function() {
+    // เก็บข้อมูลปัจจุบันสำหรับเปรียบเทียบ
+    let currentData = {
+        history_count: {{ history|length }},
+        non_winners_count: {{ non_winners|length }},
+        unclaimed_prizes_count: {{ unclaimed_prizes|length }},
+        latest_timestamp: null
+    };
+    
+    // ตัวแปรสำหรับเก็บ timeout ที่จะ refresh หลังจาก 10 วินาที
+    let pendingRefreshTimeout = null;
+    let isRefreshPending = false;
+    
+    // ดึงข้อมูล timestamp ปัจจุบันเมื่อโหลดหน้าแรก
+    async function loadInitialData() {
+        try {
+            const response = await fetch('/api/results/check');
+            const data = await response.json();
+            currentData.latest_timestamp = data.latest_timestamp;
+        } catch (error) {
+            console.error('Error loading initial data:', error);
+        }
+    }
+    
+    // Polling function - เช็คข้อมูลทุก 3 วินาที
+    let checkInterval;
+    function startDataCheck() {
+        // เช็คทุก 3 วินาที
+        checkInterval = setInterval(async function() {
             // ตรวจสอบว่าผู้ใช้กำลังพิมพ์ในช่องค้นหาหรือไม่
             const searchInput = document.getElementById('searchInput');
             if (document.activeElement === searchInput) {
-                // ถ้ากำลังพิมพ์ ให้ข้าม refresh ครั้งนี้
+                // ถ้ากำลังพิมพ์ ให้ข้ามการเช็คครั้งนี้
                 return;
             }
-            // Reload หน้าเว็บ
-            window.location.reload();
-        }, 5000); // 5000 milliseconds = 5 วินาที
+            
+            try {
+                const response = await fetch('/api/results/check');
+                const newData = await response.json();
+                
+                // เปรียบเทียบข้อมูล
+                const hasChanged = 
+                    newData.history_count !== currentData.history_count ||
+                    newData.non_winners_count !== currentData.non_winners_count ||
+                    newData.unclaimed_prizes_count !== currentData.unclaimed_prizes_count ||
+                    newData.latest_timestamp !== currentData.latest_timestamp;
+                
+                if (hasChanged && !isRefreshPending) {
+                    // พบข้อมูลใหม่ - รอ 10 วินาทีแล้วค่อย refresh
+                    isRefreshPending = true;
+                    
+                    // ล้าง timeout เก่าถ้ามี
+                    if (pendingRefreshTimeout) {
+                        clearTimeout(pendingRefreshTimeout);
+                    }
+                    
+                    // ตั้ง timeout สำหรับ refresh หลังจาก 10 วินาที
+                    pendingRefreshTimeout = setTimeout(function() {
+                        // อัพเดทข้อมูลปัจจุบัน
+                        currentData = newData;
+                        isRefreshPending = false;
+                        // Reload หน้าเว็บ
+                        window.location.reload();
+                    }, 10000); // 10000 milliseconds = 10 วินาที
+                } else if (!hasChanged && isRefreshPending) {
+                    // ถ้าข้อมูลกลับมาเหมือนเดิม ให้ยกเลิกการ refresh ที่รออยู่
+                    if (pendingRefreshTimeout) {
+                        clearTimeout(pendingRefreshTimeout);
+                        pendingRefreshTimeout = null;
+                    }
+                    isRefreshPending = false;
+                }
+            } catch (error) {
+                console.error('Error checking for updates:', error);
+            }
+        }, 3000); // เช็คทุก 3 วินาที
     }
 
     // เรียก filterResults เมื่อโหลดหน้าเพื่อเตรียมพร้อม
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', async function() {
         filterResults();
-        // เริ่ม auto-refresh
-        startAutoRefresh();
+        // โหลดข้อมูล timestamp ปัจจุบัน
+        await loadInitialData();
+        // เริ่มการเช็คข้อมูล
+        startDataCheck();
     });
 
-    // หยุด auto-refresh เมื่อผู้ใช้ออกจากหน้า
+    // หยุดการเช็คเมื่อผู้ใช้ออกจากหน้า
     window.addEventListener('beforeunload', function() {
-        if (refreshInterval) {
-            clearInterval(refreshInterval);
+        if (checkInterval) {
+            clearInterval(checkInterval);
+        }
+        if (pendingRefreshTimeout) {
+            clearTimeout(pendingRefreshTimeout);
         }
     });
 </script>
