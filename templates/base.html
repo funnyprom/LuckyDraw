@@ -88,11 +88,12 @@
         }
 
         nav .container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 0 1rem;
         }
 
         .logo {
@@ -120,17 +121,35 @@
         .nav-links {
             display: flex;
             gap: 0.5rem;
+            flex-wrap: nowrap;
+            flex-shrink: 0;
+            align-items: center;
         }
 
         .nav-links a {
             color: var(--light);
             text-decoration: none;
-            padding: 0.8rem 1.5rem;
+            padding: 0.8rem 2.5rem !important;
             border-radius: 50px;
             font-weight: 500;
+            font-size: 0.92rem !important;
             transition: all 0.3s ease;
             position: relative;
-            overflow: hidden;
+            overflow: visible !important;
+            white-space: nowrap !important;
+            letter-spacing: 0.5px !important;
+            word-spacing: 1.5px !important;
+            line-height: 1.7 !important;
+            display: inline-flex !important;
+            align-items: center;
+            justify-content: center;
+            min-width: fit-content !important;
+            width: auto !important;
+            box-sizing: border-box !important;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            font-family: 'Prompt', sans-serif !important;
+            text-align: center;
         }
 
         .nav-links a::before {
@@ -161,6 +180,17 @@
 
         .nav-links a i {
             margin-right: 0.5rem;
+            flex-shrink: 0;
+        }
+        
+        .nav-links a span,
+        .nav-links a {
+            text-overflow: clip !important;
+            overflow: visible !important;
+        }
+        
+        .nav-links a * {
+            white-space: nowrap !important;
         }
 
         .nav-links a.logout-link {
@@ -292,8 +322,11 @@
             }
 
             .nav-links a {
-                padding: 0.6rem 1rem;
-                font-size: 0.9rem;
+                padding: 0.6rem 1.5rem;
+                font-size: 0.85rem;
+                letter-spacing: 0.5px;
+                word-spacing: 1px;
+                line-height: 1.6;
             }
 
             .container {
