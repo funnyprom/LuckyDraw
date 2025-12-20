@@ -1830,6 +1830,130 @@
     let revealedWinners = [];
     let revealedCount = 0;
     
+    // ==================== Text-to-Speech for Winner Names ====================
+    let speechQueue = [];
+    let isSpeaking = false;
+    
+    function speakWinnerName(winnerName, prizeName, isGrand = false) {
+        // สร้างข้อความที่จะอ่าน (เพิ่มคำว่า "ยินดีด้วยกับคุณ" ขึ้นต้น)
+        let textToSpeak = '';
+        if (isGrand) {
+            textToSpeak = `ยินดีด้วยกับคุณ ${winnerName} ได้รับรางวัลใหญ่ ${prizeName}`;
+        } else {
+            textToSpeak = `ยินดีด้วยกับคุณ ${winnerName} ได้รับรางวัล ${prizeName}`;
+        }
+        
+        console.log('Speaking:', textToSpeak);
+        
+        // ใช้ Web Speech API โดยตรง (วิธีที่แน่นอนที่สุด)
+        if (!('speechSynthesis' in window)) {
+            console.error('Web Speech API is not supported');
+            return;
+        }
+        
+        // หยุดการอ่านที่กำลังอ่านอยู่
+        if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+        }
+        
+        // รอสักครู่ให้ cancel เสร็จ
+        setTimeout(() => {
+            const utterance = new SpeechSynthesisUtterance(textToSpeak);
+            
+            // ตั้งค่าภาษาเป็นไทย (สำคัญมาก)
+            utterance.lang = 'th-TH';
+            
+            // ตั้งค่าความเร็ว
+            utterance.rate = 0.8;
+            
+            // ตั้งค่าระดับเสียง
+            utterance.volume = 1;
+            
+            // ตั้งค่า pitch สูงขึ้นเพื่อให้เหมือนเสียงผู้หญิง
+            utterance.pitch = 1.2;
+            
+            // โหลด voices อีกครั้ง
+            const voices = window.speechSynthesis.getVoices();
+            console.log('Total voices:', voices.length);
+            
+            // ค้นหาเสียงไทย
+            const thaiVoices = voices.filter(v => {
+                const lang = v.lang.toLowerCase();
+                return lang.includes('th') || lang.includes('thai') || v.name.toLowerCase().includes('thai');
+            });
+            
+            console.log('Thai voices found:', thaiVoices.length);
+            if (thaiVoices.length > 0) {
+                console.log('Thai voices:', thaiVoices.map(v => v.name + ' (' + v.lang + ')'));
+                // ใช้เสียงไทยตัวแรก
+                utterance.voice = thaiVoices[0];
+                utterance.pitch = 1.2; // ปรับ pitch เพื่อให้เหมือนเสียงผู้หญิง
+                console.log('Using Thai voice:', thaiVoices[0].name);
+            } else {
+                // ถ้าไม่มีเสียงไทย ให้ใช้เสียง default แต่ตั้ง lang เป็น th-TH
+                console.warn('⚠️ No Thai voice found in system!');
+                console.warn('Please install Thai language pack in Windows Settings > Time & Language > Language');
+                console.log('All available voices:', voices.map(v => v.name + ' (' + v.lang + ')'));
+                
+                // ลองใช้เสียงที่ใกล้เคียงที่สุด (เช่น en-US แต่ตั้ง lang เป็น th-TH)
+                // บางเบราว์เซอร์อาจจะพยายามอ่านภาษาไทยด้วยเสียง default
+                utterance.lang = 'th-TH';
+                utterance.pitch = 1.2;
+                
+                // แสดงข้อความเตือน (ครั้งเดียว)
+                if (!window.thaiVoiceWarningShown) {
+                    console.warn('💡 Tip: To enable Thai TTS, install Thai language pack in Windows');
+                    window.thaiVoiceWarningShown = true;
+                }
+            }
+            
+            // Event handlers
+            utterance.onstart = function() {
+                console.log('Speech started');
+                isSpeaking = true;
+            };
+            
+            utterance.onend = function() {
+                console.log('Speech ended');
+                isSpeaking = false;
+            };
+            
+            utterance.onerror = function(event) {
+                console.error('Speech error:', event.error);
+                console.error('Error type:', event.type);
+                isSpeaking = false;
+            };
+            
+            utterance.onpause = function() {
+                console.log('Speech paused');
+            };
+            
+            utterance.onresume = function() {
+                console.log('Speech resumed');
+            };
+            
+            // เริ่มอ่าน
+            try {
+                window.speechSynthesis.speak(utterance);
+                console.log('Speech synthesis speak() called');
+                
+                // ตรวจสอบว่าเสียงเริ่มเล่นหรือไม่
+                setTimeout(() => {
+                    if (window.speechSynthesis.speaking || isSpeaking) {
+                        console.log('Speech is playing');
+                    } else {
+                        console.warn('Speech may not be playing');
+                        // ลองอีกครั้ง
+                        console.log('Retrying speech...');
+                        window.speechSynthesis.speak(utterance);
+                    }
+                }, 500);
+            } catch (error) {
+                console.error('Error speaking:', error);
+            }
+        }, 200);
+    }
+    
     // ==================== Sound Effects for Grand Prize ====================
     let audioContext = null;
     let spinSoundOscillator = null;
@@ -2811,6 +2935,18 @@
         
         modal.classList.add('active');
         createConfetti(false, 100);
+        
+        // อ่านชื่อผู้โชคดีด้วยเสียง AI
+        if (winners.length > 0) {
+            // รอให้ modal แสดงผลก่อน แล้วค่อยอ่าน
+            setTimeout(() => {
+                winners.forEach((winner, index) => {
+                    setTimeout(() => {
+                        speakWinnerName(winner.winner_name, selectedPrize ? selectedPrize.name : '', false);
+                    }, index * 4000); // อ่านแต่ละคนห่างกัน 4 วินาที
+                });
+            }, 1000); // รอ 1 วินาทีให้ modal แสดงผล
+        }
     }
     
     function closeBubbleFullscreen() {
@@ -3185,6 +3321,18 @@
 
         modal.classList.add('active');
         createConfetti(true, 150);
+        
+        // อ่านชื่อผู้โชคดีด้วยเสียง AI
+        if (results.length > 0) {
+            // รอให้ modal แสดงผลและเสียงชนะเล่นเสร็จก่อน แล้วค่อยอ่าน
+            setTimeout(() => {
+                results.forEach((result, index) => {
+                    setTimeout(() => {
+                        speakWinnerName(result.winner_name, selectedPrize ? selectedPrize.name : '', true);
+                    }, index * 4000); // อ่านแต่ละคนห่างกัน 4 วินาที
+                });
+            }, 2000); // รอ 2 วินาทีให้เสียงชนะเล่นเสร็จ
+        }
     }
 
     function closeModal() {

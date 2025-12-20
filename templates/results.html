@@ -286,10 +286,29 @@
         align-items: center;
         font-weight: 700;
         flex-shrink: 0;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .item-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+        background: transparent;
+    }
+    
+    .item-avatar i {
+        position: relative;
+        z-index: 1;
     }
 
     .item-card.grand .item-avatar {
         background: #DAA520;
+    }
+    
+    .item-card.grand .item-avatar img {
+        border: 2px solid rgba(218, 165, 32, 0.3);
     }
 
     .item-details {
@@ -565,7 +584,11 @@
             <div class="item-card searchable-item {% if prize.is_grand %}grand{% endif %}" 
                  data-name="{{ prize.name }}">
                 <div class="item-avatar">
+                    {% if prize.image_path and prize.image_path.strip() and prize.image_path != 'None' %}
+                    <img src="/static/{{ prize.image_path }}" alt="{{ prize.name }}" onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\\'fas {% if prize.is_grand %}fa-crown{% else %}fa-gift{% endif %}\\'></i>';">
+                    {% else %}
                     <i class="fas {% if prize.is_grand %}fa-crown{% else %}fa-gift{% endif %}"></i>
+                    {% endif %}
                 </div>
                 <div class="item-details">
                     <div class="item-name">{{ prize.name }}</div>
