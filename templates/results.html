@@ -510,7 +510,7 @@
                 <tr class="searchable-item {% if h.is_grand %}grand{% endif %}" 
                     data-name="{{ h.participant_name }}" 
                     data-prize="{{ h.prize_name }}">
-                    <td>{{ loop.index }}</td>
+                    <td>{{ (history|length) - loop.index + 1 }}</td>
                     <td>
                         <div class="winner-name">
                             <div class="avatar">{{ h.participant_name[0] }}</div>

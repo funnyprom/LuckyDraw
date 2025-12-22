@@ -244,7 +244,7 @@ def spin_page():
 @app.route('/results')
 @login_required
 def results_page():
-    # ดึงประวัติการสุ่ม
+    # ดึงประวัติการสุ่ม (เรียงจากใหม่ไปเก่า - คนล่าสุดอยู่บนสุด)
     history = DrawHistory.query.order_by(DrawHistory.created_at.desc()).all()
     # ผู้ที่ยังไม่ได้รางวัล
     non_winners = Participant.query.filter_by(is_winner=False).all()
@@ -735,6 +735,56 @@ def check_results_update():
         'unclaimed_prizes_count': unclaimed_prizes_count,
         'latest_timestamp': latest_timestamp
     })
+
+# ==================== API Routes - Text-to-Speech ====================
+@app.route('/api/tts', methods=['GET'])
+@login_required
+def text_to_speech():
+    """Text-to-Speech proxy สำหรับ Google Translate TTS"""
+    import requests
+    
+    text = request.args.get('text', '')
+    lang = request.args.get('lang', 'th')
+    
+    if not text:
+        return jsonify({'error': 'Missing text parameter'}), 400
+    
+    try:
+        # ใช้ Google Translate TTS API
+        tts_url = f'https://translate.google.com/translate_tts'
+        params = {
+            'ie': 'UTF-8',
+            'tl': lang,
+            'client': 'tw-ob',
+            'q': text
+        }
+        
+        # ดึงเสียงจาก Google TTS
+        response = requests.get(tts_url, params=params, timeout=10)
+        
+        if response.status_code == 200:
+            # ส่งเสียงกลับไป
+            from flask import Response
+            return Response(
+                response.content,
+                mimetype='audio/mpeg',
+                headers={
+                    'Content-Disposition': 'inline; filename=tts.mp3',
+                    'Access-Control-Allow-Origin': '*'
+                }
+            )
+        else:
+            return jsonify({'error': 'Failed to get TTS'}), 500
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Serve assets files (music, etc.)
+@app.route('/assets/<path:filename>')
+def serve_assets(filename):
+    import os
+    assets_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'assets')
+    return send_from_directory(assets_path, filename)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

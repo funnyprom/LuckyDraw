@@ -393,6 +393,133 @@
         }
     </script>
     {% block extra_js %}{% endblock %}
+    
+    <!-- Background Music Management (Global) -->
+    <script>
+        // ==================== Background Music (Global) ====================
+        let bgMusic = null;
+        let bgMusicInitialized = false;
+        const BG_MUSIC_KEY = 'bgMusicPlaying';
+        const BG_MUSIC_TIME_KEY = 'bgMusicCurrentTime';
+        
+        function initBackgroundMusic() {
+            if (bgMusicInitialized && bgMusic) {
+                // ถ้าเพลงถูกสร้างไว้แล้ว ให้เล่นต่อจากตำแหน่งเดิม
+                const savedTime = parseFloat(sessionStorage.getItem(BG_MUSIC_TIME_KEY)) || 0;
+                if (bgMusic.paused && sessionStorage.getItem(BG_MUSIC_KEY) === 'true') {
+                    bgMusic.currentTime = savedTime;
+                    // พยายามเล่นเพลงเมื่อโหลดหน้า (ต้องมี user interaction ก่อน)
+                    document.addEventListener('click', function playMusicOnFirstClick() {
+                        if (bgMusic && bgMusic.paused) {
+                            bgMusic.play().catch(err => {
+                                console.log('Background music will play after user interaction');
+                            });
+                        }
+                        document.removeEventListener('click', playMusicOnFirstClick);
+                    }, { once: true });
+                }
+                return;
+            }
+            
+            bgMusic = new Audio('/assets/Music/BG_Music.mp3');
+            bgMusic.loop = true;
+            bgMusic.volume = 0.5; // ตั้งค่าระดับเสียง 50%
+            
+            bgMusic.onerror = function(e) {
+                console.error('Error loading background music:', e);
+            };
+            
+            bgMusic.onloadedmetadata = function() {
+                // เมื่อโหลด metadata เสร็จ ให้ตั้งค่า currentTime จาก sessionStorage
+                const savedTime = parseFloat(sessionStorage.getItem(BG_MUSIC_TIME_KEY)) || 0;
+                if (savedTime > 0 && savedTime < bgMusic.duration) {
+                    bgMusic.currentTime = savedTime;
+                }
+            };
+            
+            bgMusic.onended = function() {
+                // ถ้าเพลงจบ (ไม่ควรเกิดขึ้นเพราะ loop = true) ให้เล่นต่อ
+                if (sessionStorage.getItem(BG_MUSIC_KEY) === 'true') {
+                    bgMusic.play();
+                }
+            };
+            
+            // บันทึกตำแหน่งเพลงทุก 1 วินาที
+            bgMusic.addEventListener('timeupdate', function() {
+                if (!bgMusic.paused) {
+                    sessionStorage.setItem(BG_MUSIC_TIME_KEY, bgMusic.currentTime.toString());
+                }
+            });
+            
+            bgMusicInitialized = true;
+            
+            // ตรวจสอบสถานะจาก sessionStorage
+            if (sessionStorage.getItem(BG_MUSIC_KEY) === 'true') {
+                // พยายามเล่นเพลงเมื่อโหลดหน้า (ต้องมี user interaction ก่อน)
+                document.addEventListener('click', function playMusicOnFirstClick() {
+                    if (bgMusic && bgMusic.paused) {
+                        const savedTime = parseFloat(sessionStorage.getItem(BG_MUSIC_TIME_KEY)) || 0;
+                        if (savedTime > 0 && bgMusic.readyState >= 2) {
+                            bgMusic.currentTime = savedTime;
+                        }
+                        bgMusic.play().catch(err => {
+                            console.log('Background music will play after user interaction');
+                        });
+                    }
+                    document.removeEventListener('click', playMusicOnFirstClick);
+                }, { once: true });
+            }
+        }
+        
+        function playBackgroundMusic() {
+            if (!bgMusic || !bgMusicInitialized) {
+                initBackgroundMusic();
+            }
+            if (bgMusic && bgMusic.paused) {
+                // ตั้งค่า currentTime จาก sessionStorage ก่อนเล่น
+                const savedTime = parseFloat(sessionStorage.getItem(BG_MUSIC_TIME_KEY)) || 0;
+                if (savedTime > 0 && bgMusic.readyState >= 2) {
+                    bgMusic.currentTime = savedTime;
+                }
+                bgMusic.play().catch(err => {
+                    console.error('Error playing background music:', err);
+                });
+                sessionStorage.setItem(BG_MUSIC_KEY, 'true');
+            }
+        }
+        
+        function stopBackgroundMusic() {
+            if (bgMusic && !bgMusic.paused) {
+                // บันทึกตำแหน่งปัจจุบันก่อนหยุด
+                sessionStorage.setItem(BG_MUSIC_TIME_KEY, bgMusic.currentTime.toString());
+                bgMusic.pause();
+                sessionStorage.setItem(BG_MUSIC_KEY, 'false');
+            }
+        }
+        
+        // เริ่มต้นเพลงเมื่อโหลดหน้า (ถ้ายังอยู่ในสถานะเล่น)
+        document.addEventListener('DOMContentLoaded', function() {
+            initBackgroundMusic();
+        });
+        
+        // เมื่อเปลี่ยนหน้า ให้บันทึกสถานะและตำแหน่งเพลง
+        window.addEventListener('beforeunload', function() {
+            if (bgMusic && !bgMusic.paused) {
+                sessionStorage.setItem(BG_MUSIC_KEY, 'true');
+                sessionStorage.setItem(BG_MUSIC_TIME_KEY, bgMusic.currentTime.toString());
+            } else if (bgMusic && bgMusic.paused) {
+                // บันทึกตำแหน่งปัจจุบันแม้จะหยุดอยู่
+                sessionStorage.setItem(BG_MUSIC_TIME_KEY, bgMusic.currentTime.toString());
+            }
+        });
+        
+        // บันทึกตำแหน่งเพลงเป็นระยะๆ (ทุก 2 วินาที)
+        setInterval(function() {
+            if (bgMusic && !bgMusic.paused && bgMusic.readyState >= 2) {
+                sessionStorage.setItem(BG_MUSIC_TIME_KEY, bgMusic.currentTime.toString());
+            }
+        }, 2000);
+    </script>
 </body>
 </html>
 

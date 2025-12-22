@@ -1830,128 +1830,162 @@
     let revealedWinners = [];
     let revealedCount = 0;
     
-    // ==================== Text-to-Speech for Winner Names ====================
-    let speechQueue = [];
-    let isSpeaking = false;
+    // ==================== Background Music ====================
+    // ฟังก์ชันการจัดการเพลงถูกย้ายไปที่ base.html แล้ว
+    // ใช้ฟังก์ชันจาก global scope (playBackgroundMusic, stopBackgroundMusic)
+    
+    // ==================== Text-to-Speech for Winner Names (ใช้ Google Translate TTS) ====================
+    let currentAudio = null;
+    
+    // ตรวจสอบว่าชื่อเป็นภาษาอังกฤษ/พม่า (ไม่มีตัวอักษรไทย)
+    function isEnglishOrMyanmarName(name) {
+        // ตรวจสอบว่ามีตัวอักษรไทยหรือไม่
+        const thaiPattern = /[ก-๙]/;
+        return !thaiPattern.test(name);
+    }
+    
+    // แปลงชื่อภาษาอังกฤษ/พม่าให้อ่านได้ถูกต้อง (ใช้วิธีอ่านแบบคำ)
+    function formatEnglishName(name) {
+        // แบ่งชื่อเป็นคำๆ และเพิ่มช่องว่างระหว่างคำเพื่อให้อ่านเป็นคำแทนตัวอักษร
+        return name.split(' ').join(' ');
+    }
     
     function speakWinnerName(winnerName, prizeName, isGrand = false) {
-        // สร้างข้อความที่จะอ่าน (เพิ่มคำว่า "ยินดีด้วยกับคุณ" ขึ้นต้น)
+        // ปิดฟังก์ชันเสียง TTS ชั่วคราว
+        return;
+        
+        console.log('Speaking for winner:', winnerName);
+        
+        // หยุดเสียงที่กำลังเล่นอยู่
+        if (currentAudio) {
+            currentAudio.pause();
+            currentAudio = null;
+        }
+        
+        // ตรวจสอบว่าชื่อเป็นภาษาอังกฤษ/พม่า หรือภาษาไทย
+        const isEnglishName = isEnglishOrMyanmarName(winnerName);
+        
+        // สร้างข้อความที่จะอ่าน
         let textToSpeak = '';
-        if (isGrand) {
-            textToSpeak = `ยินดีด้วยกับคุณ ${winnerName} ได้รับรางวัลใหญ่ ${prizeName}`;
+        let nameToSpeak = winnerName;
+        
+        // ถ้าเป็นชื่อภาษาอังกฤษ/พม่า ให้ใช้ lang=en เพื่ออ่านเป็นคำ
+        if (isEnglishName) {
+            // สำหรับชื่อภาษาอังกฤษ/พม่า ให้อ่านชื่อด้วยภาษาอังกฤษ
+            // แล้วอ่านส่วนอื่นด้วยภาษาไทย
+            const nameFormatted = formatEnglishName(winnerName);
+            
+            if (isGrand) {
+                // อ่านชื่อด้วยภาษาอังกฤษ แล้วอ่านส่วนอื่นด้วยภาษาไทย
+                playEnglishNameThenThai(`ยินดีด้วยกับคุณ`, nameFormatted, `ได้รับรางวัลใหญ่ ${prizeName}`);
+            } else {
+                playEnglishNameThenThai(`ยินดีด้วยกับคุณ`, nameFormatted, `ได้รับรางวัล ${prizeName}`);
+            }
+            return;
         } else {
-            textToSpeak = `ยินดีด้วยกับคุณ ${winnerName} ได้รับรางวัล ${prizeName}`;
+            // ชื่อภาษาไทย - อ่านทั้งหมดด้วยภาษาไทย
+            if (isGrand) {
+                textToSpeak = `ยินดีด้วยกับคุณ ${winnerName} ได้รับรางวัลใหญ่ ${prizeName}`;
+            } else {
+                textToSpeak = `ยินดีด้วยกับคุณ ${winnerName} ได้รับรางวัล ${prizeName}`;
+            }
         }
         
         console.log('Speaking:', textToSpeak);
         
-        // ใช้ Web Speech API โดยตรง (วิธีที่แน่นอนที่สุด)
-        if (!('speechSynthesis' in window)) {
-            console.error('Web Speech API is not supported');
+        // แบ่งข้อความเป็นประโยคสั้นๆ
+        const maxLength = 200;
+        const sentences = [];
+        let currentSentence = '';
+        
+        const words = textToSpeak.split(' ');
+        for (let word of words) {
+            if ((currentSentence + ' ' + word).length <= maxLength) {
+                currentSentence = currentSentence ? currentSentence + ' ' + word : word;
+            } else {
+                if (currentSentence) sentences.push(currentSentence);
+                currentSentence = word;
+            }
+        }
+        if (currentSentence) sentences.push(currentSentence);
+        
+        // เล่นเสียงทีละประโยคด้วยภาษาไทย
+        playSentences(sentences, 0, 'th');
+    }
+    
+    // ฟังก์ชันสำหรับอ่านชื่อภาษาอังกฤษแล้วอ่านส่วนอื่นด้วยภาษาไทย
+    function playEnglishNameThenThai(prefix, englishName, suffix) {
+        // อ่าน prefix ด้วยภาษาไทย
+        playSentences([prefix], 0, 'th', () => {
+            // อ่านชื่อด้วยภาษาอังกฤษ
+            playSentences([englishName], 0, 'en', () => {
+                // อ่าน suffix ด้วยภาษาไทย
+                playSentences([suffix], 0, 'th');
+            });
+        });
+    }
+    
+    function playSentences(sentences, index, lang = 'th', onComplete = null) {
+        if (index >= sentences.length) {
+            if (onComplete) {
+                onComplete();
+            } else {
+                currentAudio = null;
+            }
             return;
         }
         
-        // หยุดการอ่านที่กำลังอ่านอยู่
-        if (window.speechSynthesis.speaking) {
-            window.speechSynthesis.cancel();
-        }
+        const textToSpeak = sentences[index];
+        // ใช้ backend endpoint เพื่อ bypass CORS
+        const encodedText = encodeURIComponent(textToSpeak);
+        const ttsUrl = `/api/tts?text=${encodedText}&lang=${lang}`;
         
-        // รอสักครู่ให้ cancel เสร็จ
-        setTimeout(() => {
-            const utterance = new SpeechSynthesisUtterance(textToSpeak);
-            
-            // ตั้งค่าภาษาเป็นไทย (สำคัญมาก)
-            utterance.lang = 'th-TH';
-            
-            // ตั้งค่าความเร็ว
-            utterance.rate = 0.8;
-            
-            // ตั้งค่าระดับเสียง
-            utterance.volume = 1;
-            
-            // ตั้งค่า pitch สูงขึ้นเพื่อให้เหมือนเสียงผู้หญิง
-            utterance.pitch = 1.2;
-            
-            // โหลด voices อีกครั้ง
-            const voices = window.speechSynthesis.getVoices();
-            console.log('Total voices:', voices.length);
-            
-            // ค้นหาเสียงไทย
-            const thaiVoices = voices.filter(v => {
-                const lang = v.lang.toLowerCase();
-                return lang.includes('th') || lang.includes('thai') || v.name.toLowerCase().includes('thai');
-            });
-            
-            console.log('Thai voices found:', thaiVoices.length);
-            if (thaiVoices.length > 0) {
-                console.log('Thai voices:', thaiVoices.map(v => v.name + ' (' + v.lang + ')'));
-                // ใช้เสียงไทยตัวแรก
-                utterance.voice = thaiVoices[0];
-                utterance.pitch = 1.2; // ปรับ pitch เพื่อให้เหมือนเสียงผู้หญิง
-                console.log('Using Thai voice:', thaiVoices[0].name);
-            } else {
-                // ถ้าไม่มีเสียงไทย ให้ใช้เสียง default แต่ตั้ง lang เป็น th-TH
-                console.warn('⚠️ No Thai voice found in system!');
-                console.warn('Please install Thai language pack in Windows Settings > Time & Language > Language');
-                console.log('All available voices:', voices.map(v => v.name + ' (' + v.lang + ')'));
-                
-                // ลองใช้เสียงที่ใกล้เคียงที่สุด (เช่น en-US แต่ตั้ง lang เป็น th-TH)
-                // บางเบราว์เซอร์อาจจะพยายามอ่านภาษาไทยด้วยเสียง default
-                utterance.lang = 'th-TH';
-                utterance.pitch = 1.2;
-                
-                // แสดงข้อความเตือน (ครั้งเดียว)
-                if (!window.thaiVoiceWarningShown) {
-                    console.warn('💡 Tip: To enable Thai TTS, install Thai language pack in Windows');
-                    window.thaiVoiceWarningShown = true;
-                }
-            }
-            
-            // Event handlers
-            utterance.onstart = function() {
-                console.log('Speech started');
-                isSpeaking = true;
-            };
-            
-            utterance.onend = function() {
-                console.log('Speech ended');
-                isSpeaking = false;
-            };
-            
-            utterance.onerror = function(event) {
-                console.error('Speech error:', event.error);
-                console.error('Error type:', event.type);
-                isSpeaking = false;
-            };
-            
-            utterance.onpause = function() {
-                console.log('Speech paused');
-            };
-            
-            utterance.onresume = function() {
-                console.log('Speech resumed');
-            };
-            
-            // เริ่มอ่าน
-            try {
-                window.speechSynthesis.speak(utterance);
-                console.log('Speech synthesis speak() called');
-                
-                // ตรวจสอบว่าเสียงเริ่มเล่นหรือไม่
-                setTimeout(() => {
-                    if (window.speechSynthesis.speaking || isSpeaking) {
-                        console.log('Speech is playing');
-                    } else {
-                        console.warn('Speech may not be playing');
-                        // ลองอีกครั้ง
-                        console.log('Retrying speech...');
-                        window.speechSynthesis.speak(utterance);
-                    }
-                }, 500);
-            } catch (error) {
-                console.error('Error speaking:', error);
-            }
-        }, 200);
+        console.log(`Playing sentence ${index + 1}/${sentences.length} (${lang}):`, textToSpeak);
+        
+        // สร้าง Audio element
+        const audio = new Audio(ttsUrl);
+        audio.volume = 1;
+        currentAudio = audio;
+        
+        // Event handlers
+        audio.onloadstart = function() {
+            console.log(`Google TTS loading sentence ${index + 1} (${lang})`);
+        };
+        
+        audio.oncanplay = function() {
+            console.log(`Google TTS can play sentence ${index + 1} (${lang})`);
+        };
+        
+        audio.onplay = function() {
+            console.log(`Google TTS started playing sentence ${index + 1} (${lang})`);
+        };
+        
+        audio.onended = function() {
+            console.log(`Google TTS finished sentence ${index + 1} (${lang})`);
+            // เล่นประโยคถัดไป
+            setTimeout(() => {
+                playSentences(sentences, index + 1, lang, onComplete);
+            }, 300); // รอ 300ms ระหว่างประโยค
+        };
+        
+        audio.onerror = function(error) {
+            console.error(`Google TTS error for sentence ${index + 1} (${lang}):`, error);
+            // ข้ามประโยคนี้และเล่นประโยคถัดไป
+            setTimeout(() => {
+                playSentences(sentences, index + 1, lang, onComplete);
+            }, 300);
+        };
+        
+        // เริ่มเล่นเสียง
+        audio.play().then(() => {
+            console.log(`Google TTS audio playing sentence ${index + 1} (${lang}) successfully`);
+        }).catch(error => {
+            console.error(`Error playing Google TTS sentence ${index + 1} (${lang}):`, error);
+            // ข้ามประโยคนี้และเล่นประโยคถัดไป
+            setTimeout(() => {
+                playSentences(sentences, index + 1, lang, onComplete);
+            }, 300);
+        });
     }
     
     // ==================== Sound Effects for Grand Prize ====================
@@ -1959,6 +1993,9 @@
     let spinSoundOscillator = null;
     let spinSoundGainNode = null;
     let spinSoundIntervals = [];
+    let spinningAudio = null; // สำหรับไฟล์ spinning-s.mp3 (ผู้ชนะคนเดียว)
+    let spinningMAudio = null; // สำหรับไฟล์ spinning-m.mp3 (ผู้ชนะหลายคน)
+    let luckyAudio = null; // สำหรับไฟล์ Lucky.mp3 (เมื่อมี popup ผู้โชคดี)
     
     function initAudioContext() {
         if (!audioContext) {
@@ -2039,57 +2076,57 @@
                 ctx.resume();
             }
             
-            // เสียงชนะลอตเตอรี - Fanfare ที่ตื่นเต้น
+            // เสียงชนะลอตเตอรี - Fanfare ที่ตื่นเต้นมาก
             const now = ctx.currentTime;
             
-            // เสียงหยุดถังหมุน - เสียงต่ำที่ลดลง
+            // เสียงหยุดถังหมุน - เสียงต่ำที่ลดลง (เร็วขึ้น)
             const oscStop = ctx.createOscillator();
             const gainStop = ctx.createGain();
             oscStop.connect(gainStop);
             gainStop.connect(ctx.destination);
             oscStop.type = 'sine';
-            oscStop.frequency.setValueAtTime(60, now);
-            oscStop.frequency.exponentialRampToValueAtTime(40, now + 0.2);
-            gainStop.gain.setValueAtTime(0.3, now);
-            gainStop.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+            oscStop.frequency.setValueAtTime(80, now);
+            oscStop.frequency.exponentialRampToValueAtTime(50, now + 0.15);
+            gainStop.gain.setValueAtTime(0.4, now);
+            gainStop.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
             oscStop.start(now);
-            oscStop.stop(now + 0.2);
+            oscStop.stop(now + 0.15);
             
-            // โน้ตแรก - C5 (เสียงสูงที่ชัดเจน)
+            // โน้ตแรก - C5 (เสียงสูงที่ชัดเจน - เร็วขึ้น)
             const osc1 = ctx.createOscillator();
             const gain1 = ctx.createGain();
             osc1.connect(gain1);
             gain1.connect(ctx.destination);
             osc1.type = 'sine';
-            osc1.frequency.setValueAtTime(523.25, now + 0.15); // C5
-            gain1.gain.setValueAtTime(0.5, now + 0.15);
-            gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-            osc1.start(now + 0.15);
-            osc1.stop(now + 0.4);
+            osc1.frequency.setValueAtTime(523.25, now + 0.1); // C5
+            gain1.gain.setValueAtTime(0.6, now + 0.1);
+            gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            osc1.start(now + 0.1);
+            osc1.stop(now + 0.3);
             
-            // โน้ตที่สอง - E5 (เสียงสูงกว่า)
+            // โน้ตที่สอง - E5 (เสียงสูงกว่า - เร็วขึ้น)
             const osc2 = ctx.createOscillator();
             const gain2 = ctx.createGain();
             osc2.connect(gain2);
             gain2.connect(ctx.destination);
             osc2.type = 'sine';
-            osc2.frequency.setValueAtTime(659.25, now + 0.3); // E5
-            gain2.gain.setValueAtTime(0.5, now + 0.3);
-            gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.55);
-            osc2.start(now + 0.3);
-            osc2.stop(now + 0.55);
+            osc2.frequency.setValueAtTime(659.25, now + 0.2); // E5
+            gain2.gain.setValueAtTime(0.65, now + 0.2);
+            gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+            osc2.start(now + 0.2);
+            osc2.stop(now + 0.4);
             
-            // โน้ตที่สาม - G5 (เสียงสูงสุด)
+            // โน้ตที่สาม - G5 (เสียงสูงสุด - เร็วขึ้น)
             const osc3 = ctx.createOscillator();
             const gain3 = ctx.createGain();
             osc3.connect(gain3);
             gain3.connect(ctx.destination);
             osc3.type = 'sine';
-            osc3.frequency.setValueAtTime(783.99, now + 0.45); // G5
-            gain3.gain.setValueAtTime(0.6, now + 0.45);
-            gain3.gain.exponentialRampToValueAtTime(0.01, now + 0.85);
-            osc3.start(now + 0.45);
-            osc3.stop(now + 0.85);
+            osc3.frequency.setValueAtTime(783.99, now + 0.3); // G5
+            gain3.gain.setValueAtTime(0.7, now + 0.3);
+            gain3.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+            osc3.start(now + 0.3);
+            osc3.stop(now + 0.6);
             
             // โน้ตที่สี่ - C6 (เสียงสูงสุดสุด - เพิ่มความตื่นเต้น)
             const osc4 = ctx.createOscillator();
@@ -2097,25 +2134,66 @@
             osc4.connect(gain4);
             gain4.connect(ctx.destination);
             osc4.type = 'sine';
-            osc4.frequency.setValueAtTime(1046.50, now + 0.6); // C6
-            gain4.gain.setValueAtTime(0.55, now + 0.6);
-            gain4.gain.exponentialRampToValueAtTime(0.01, now + 1.1);
-            osc4.start(now + 0.6);
-            osc4.stop(now + 1.1);
+            osc4.frequency.setValueAtTime(1046.50, now + 0.4); // C6
+            gain4.gain.setValueAtTime(0.75, now + 0.4);
+            gain4.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+            osc4.start(now + 0.4);
+            osc4.stop(now + 0.8);
             
-            // เสียงต่ำเสริม - เพิ่มความลึกและความตื่นเต้น
+            // โน้ตที่ห้า - E6 (เสียงสูงสุดสุดสุด - เพิ่มความตื่นเต้น)
+            const osc5 = ctx.createOscillator();
+            const gain5 = ctx.createGain();
+            osc5.connect(gain5);
+            gain5.connect(ctx.destination);
+            osc5.type = 'sine';
+            osc5.frequency.setValueAtTime(1318.51, now + 0.5); // E6
+            gain5.gain.setValueAtTime(0.7, now + 0.5);
+            gain5.gain.exponentialRampToValueAtTime(0.01, now + 0.9);
+            osc5.start(now + 0.5);
+            osc5.stop(now + 0.9);
+            
+            // เสียงต่ำเสริม - เพิ่มความลึกและความตื่นเต้น (เร็วขึ้น)
             const oscBass = ctx.createOscillator();
             const gainBass = ctx.createGain();
             oscBass.connect(gainBass);
             gainBass.connect(ctx.destination);
             oscBass.type = 'triangle';
-            oscBass.frequency.setValueAtTime(261.63, now + 0.1); // C4
-            oscBass.frequency.exponentialRampToValueAtTime(392.00, now + 0.7); // G4
-            gainBass.gain.setValueAtTime(0.35, now + 0.1);
-            gainBass.gain.exponentialRampToValueAtTime(0.4, now + 0.4);
-            gainBass.gain.exponentialRampToValueAtTime(0.01, now + 1.0);
-            oscBass.start(now + 0.1);
-            oscBass.stop(now + 1.0);
+            oscBass.frequency.setValueAtTime(261.63, now + 0.05); // C4
+            oscBass.frequency.exponentialRampToValueAtTime(392.00, now + 0.5); // G4
+            gainBass.gain.setValueAtTime(0.45, now + 0.05);
+            gainBass.gain.exponentialRampToValueAtTime(0.5, now + 0.3);
+            gainBass.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+            oscBass.start(now + 0.05);
+            oscBass.stop(now + 0.8);
+            
+            // เสียงต่ำเสริมที่สอง - เพิ่มความตื่นเต้น (เสียงกลอง)
+            const oscBass2 = ctx.createOscillator();
+            const gainBass2 = ctx.createGain();
+            oscBass2.connect(gainBass2);
+            gainBass2.connect(ctx.destination);
+            oscBass2.type = 'sawtooth';
+            oscBass2.frequency.setValueAtTime(100, now + 0.1);
+            oscBass2.frequency.exponentialRampToValueAtTime(150, now + 0.25);
+            oscBass2.frequency.exponentialRampToValueAtTime(80, now + 0.5);
+            gainBass2.gain.setValueAtTime(0.3, now + 0.1);
+            gainBass2.gain.exponentialRampToValueAtTime(0.4, now + 0.25);
+            gainBass2.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+            oscBass2.start(now + 0.1);
+            oscBass2.stop(now + 0.6);
+            
+            // เสียงสูงเสริม - เพิ่มความตื่นเต้น (เสียงระฆัง)
+            const oscBell = ctx.createOscillator();
+            const gainBell = ctx.createGain();
+            oscBell.connect(gainBell);
+            gainBell.connect(ctx.destination);
+            oscBell.type = 'triangle';
+            oscBell.frequency.setValueAtTime(1567.98, now + 0.35); // G6
+            oscBell.frequency.exponentialRampToValueAtTime(2093.00, now + 0.55); // C7
+            gainBell.gain.setValueAtTime(0.5, now + 0.35);
+            gainBell.gain.exponentialRampToValueAtTime(0.6, now + 0.45);
+            gainBell.gain.exponentialRampToValueAtTime(0.01, now + 0.75);
+            oscBell.start(now + 0.35);
+            oscBell.stop(now + 0.75);
         } catch (e) {
             console.log('Audio not available:', e);
         }
@@ -2235,7 +2313,63 @@
         }
     }
     
+    function playSpinningAudio() {
+        // เล่นไฟล์ spinning-s.mp3 สำหรับผู้ชนะคนเดียว
+        if (spinningAudio) {
+            spinningAudio.pause();
+            spinningAudio.currentTime = 0;
+        }
+        
+        spinningAudio = new Audio('/assets/Music/spinning-s.mp3');
+        spinningAudio.loop = false;
+        spinningAudio.volume = 0.7;
+        
+        spinningAudio.onerror = function(e) {
+            console.error('Error loading spinning-s.mp3:', e);
+        };
+        
+        spinningAudio.play().catch(err => {
+            console.error('Error playing spinning-s.mp3:', err);
+        });
+    }
+    
+    function playSpinningMAudio() {
+        // เล่นไฟล์ spinning-m.mp3 สำหรับผู้ชนะหลายคน
+        if (spinningMAudio) {
+            spinningMAudio.pause();
+            spinningMAudio.currentTime = 0;
+        }
+        
+        spinningMAudio = new Audio('/assets/Music/spinning-m.mp3');
+        spinningMAudio.loop = false;
+        spinningMAudio.volume = 0.7;
+        
+        spinningMAudio.onerror = function(e) {
+            console.error('Error loading spinning-m.mp3:', e);
+        };
+        
+        spinningMAudio.play().catch(err => {
+            console.error('Error playing spinning-m.mp3:', err);
+        });
+    }
+    
+    function stopSpinningAudio() {
+        if (spinningAudio) {
+            spinningAudio.pause();
+            spinningAudio.currentTime = 0;
+            spinningAudio = null;
+        }
+        if (spinningMAudio) {
+            spinningMAudio.pause();
+            spinningMAudio.currentTime = 0;
+            spinningMAudio = null;
+        }
+    }
+    
     function stopSpinSound() {
+        // หยุดไฟล์ spinning-s.mp3 ถ้ามี
+        stopSpinningAudio();
+        
         // หยุด intervals ทั้งหมด
         if (spinSoundIntervals && spinSoundIntervals.length > 0) {
             spinSoundIntervals.forEach(interval => clearInterval(interval));
@@ -2538,6 +2672,9 @@
             alert('กรุณาเลือกจำนวนผู้โชคดี');
             return;
         }
+        
+        // หยุดเพลงเมื่อกดสร้างฟองสบู่
+        stopBackgroundMusic();
         
         isProcessing = true;
         revealedWinners = []; // Reset revealed winners
@@ -2868,7 +3005,41 @@
         revealedWinners = [];
     }
     
+    function playLuckyMusic() {
+        // เล่นเพลง Lucky.mp3 เมื่อมี popup ผู้โชคดี
+        if (luckyAudio) {
+            luckyAudio.pause();
+            luckyAudio.currentTime = 0;
+        }
+        
+        luckyAudio = new Audio('/assets/Music/Lucky.mp3');
+        luckyAudio.loop = false;
+        luckyAudio.volume = 0.7;
+        
+        luckyAudio.onerror = function(e) {
+            console.error('Error loading Lucky.mp3:', e);
+        };
+        
+        luckyAudio.play().catch(err => {
+            console.error('Error playing Lucky.mp3:', err);
+        });
+    }
+    
+    function stopLuckyMusic() {
+        if (luckyAudio) {
+            luckyAudio.pause();
+            luckyAudio.currentTime = 0;
+            luckyAudio = null;
+        }
+    }
+    
     function showBubbleWinners(winners) {
+        // หยุดเพลงเมื่อแสดง popup "ยินดีด้วย!"
+        stopBackgroundMusic();
+        
+        // เล่นเพลง Lucky.mp3
+        playLuckyMusic();
+        
         const modal = document.getElementById('winnerModal');
         const modalContent = document.getElementById('modalContent');
         const winnerIcon = document.getElementById('winnerIcon');
@@ -2958,6 +3129,9 @@
         selectedCount = 0;
         document.querySelectorAll('.count-btn').forEach(btn => btn.classList.remove('active'));
         isProcessing = false;
+        
+        // เล่นเพลงอีกครั้งเมื่อปิด
+        playBackgroundMusic();
     }
 
     // ==================== CS:GO STYLE REEL SPIN (Grand Prize) ====================
@@ -2966,6 +3140,8 @@
     let excludedWinnerIds = []; // Track winners to exclude from reel
     
     function spinReel() {
+        // หยุดเพลงเมื่อกดหมุนรางวัลใหญ่
+        stopBackgroundMusic();
         if (!selectedPrize) {
             alert('กรุณาเลือกรางวัลก่อน');
             return;
@@ -2982,9 +3158,7 @@
         document.getElementById('csgoSpinner').classList.add('spinning');
         activateGrandMode();
         
-        // เล่นเสียงเมื่อเริ่มหมุนรางวัลใหญ่
-        playSpinSound();
-        playContinuousSpinSound();
+        // ไม่เรียกเสียงที่นี่ เพราะจะเรียกใน spinNextWinner() ตามจำนวนผู้ชนะ
 
         // Call API first to get all winners
         fetch('/api/spin', {
@@ -3108,6 +3282,17 @@
         const winner = grandWinnersQueue.shift();
         const isMultiple = allGrandWinners.length > 1;
         const spinDuration = isMultiple ? 3 : 5;
+        
+        // เล่นเสียงหมุนตามจำนวนผู้ชนะ
+        if (isMultiple) {
+            // ผู้ชนะหลายคน - ใช้ไฟล์ spinning-m.mp3 (ไม่มี oscillator)
+            stopSpinSound(); // หยุดเสียงเก่าก่อน (ถ้ามี)
+            playSpinningMAudio(); // เล่นไฟล์ spinning-m.mp3
+        } else {
+            // ผู้ชนะคนเดียว - ใช้เฉพาะไฟล์ spinning-s.mp3 (ไม่มี oscillator)
+            stopSpinSound(); // หยุดเสียงเก่าก่อน (ถ้ามี)
+            playSpinningAudio(); // เล่นไฟล์ spinning-s.mp3
+        }
         
         animateReelToWinner(winner, spinDuration, () => {
             // Add to excluded list (don't modify participantsCopy yet)
@@ -3251,10 +3436,15 @@
     
     // Keep old function name for compatibility
     function spinWheel() {
+        // หยุดเพลงเมื่อกดหมุน
+        stopBackgroundMusic();
         spinReel();
     }
 
     function showGrandWinners(results) {
+        // เล่นเพลง Lucky.mp3
+        playLuckyMusic();
+        
         const modal = document.getElementById('winnerModal');
         const modalContent = document.getElementById('modalContent');
         const winnerIcon = document.getElementById('winnerIcon');
@@ -3336,14 +3526,25 @@
     }
 
     function closeModal() {
+        const modalContent = document.getElementById('modalContent');
+        const isNormalPrize = modalContent.classList.contains('normal-prize');
+        
+        // หยุดเพลง Lucky.mp3
+        stopLuckyMusic();
+        
         document.getElementById('winnerModal').classList.remove('active');
         // Reset modal to default grand-prize styling for next use
-        document.getElementById('modalContent').className = 'modal-content grand-prize';
+        modalContent.className = 'modal-content grand-prize';
         document.querySelectorAll('.confetti').forEach(c => c.remove());
         deactivateGrandMode();
         
         // Always go back to prize selection
         goBackToSelection();
+        
+        // เล่นเพลงอีกครั้งเมื่อปิดเฉพาะรางวัลทั่วไป (ฟองสบู่)
+        if (isNormalPrize) {
+            playBackgroundMusic();
+        }
     }
 
     function activateGrandMode() {
@@ -3517,6 +3718,16 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
+        // เพลงพื้นหลังถูกจัดการใน base.html แล้ว
+        // เริ่มเล่นเพลงเมื่อมีการคลิกครั้งแรก (ถ้ายังไม่ได้เล่น)
+        if (sessionStorage.getItem('bgMusicPlaying') !== 'true') {
+            // รอ user interaction ก่อน
+            document.addEventListener('click', function playMusicOnFirstClick() {
+                playBackgroundMusic();
+                document.removeEventListener('click', playMusicOnFirstClick);
+            }, { once: true });
+        }
+        
         if (participantsCopy.length > 0) buildWheel();
     });
 
