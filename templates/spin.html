@@ -1717,11 +1717,13 @@
             <!-- Winner Count -->
             <div class="winner-count-section">
                 <label>จำนวนผู้โชคดี</label>
-                <div class="winner-count-buttons">
+                <div class="winner-count-buttons" id="winnerCountButtons">
                     <button class="count-btn active" data-count="1" onclick="selectCount(1)">1</button>
                     <button class="count-btn" data-count="2" onclick="selectCount(2)">2</button>
                     <button class="count-btn" data-count="3" onclick="selectCount(3)">3</button>
+                    <button class="count-btn" data-count="4" onclick="selectCount(4)">4</button>
                     <button class="count-btn" data-count="5" onclick="selectCount(5)">5</button>
+                    <button class="count-btn" data-count="10" onclick="selectCount(10)" style="display: none;">10</button>
                 </div>
             </div>
 
@@ -1996,6 +1998,7 @@
     let spinningAudio = null; // สำหรับไฟล์ spinning-s.mp3 (ผู้ชนะคนเดียว)
     let spinningMAudio = null; // สำหรับไฟล์ spinning-m.mp3 (ผู้ชนะหลายคน)
     let luckyAudio = null; // สำหรับไฟล์ Lucky.mp3 (เมื่อมี popup ผู้โชคดี)
+    let bubblePopAudio = null; // สำหรับไฟล์เสียงฟองสบู่แตก
     
     function initAudioContext() {
         if (!audioContext) {
@@ -2516,6 +2519,9 @@
             console.log('No image path, showing icon'); // Debug
         }
         
+        // Update count buttons based on prize type
+        updateCountButtons(selectedPrize.isGrand);
+        
         if (selectedPrize.isGrand) {
             // Grand Prize - Show Wheel
             display.classList.add('grand');
@@ -2586,9 +2592,38 @@
         pendingWinners = [];
         revealedCount = 0;
         selectedCount = 0;
+        revealedWinners = [];
         document.querySelectorAll('.count-btn').forEach(btn => btn.classList.remove('active'));
+        
+        // Reset popAllBtn state
+        const popAllBtn = document.getElementById('popAllBtn');
+        if (popAllBtn) {
+            popAllBtn.disabled = false;
+        }
     }
 
+    function updateCountButtons(isGrand) {
+        const buttonsContainer = document.getElementById('winnerCountButtons');
+        const buttons = buttonsContainer.querySelectorAll('.count-btn');
+        
+        // รางวัลใหญ่: 1, 2, 3, 4, 5
+        // รางวัลทั่วไป: 1, 2, 3, 4, 5, 10
+        buttons.forEach(btn => {
+            const count = parseInt(btn.dataset.count);
+            if (isGrand) {
+                // รางวัลใหญ่ - ซ่อนปุ่ม 10
+                if (count === 10) {
+                    btn.style.display = 'none';
+                } else {
+                    btn.style.display = 'inline-flex';
+                }
+            } else {
+                // รางวัลทั่วไป - แสดงปุ่มทั้งหมด
+                btn.style.display = 'inline-flex';
+            }
+        });
+    }
+    
     function selectCount(count) {
         if (!selectedPrize) return;
         const maxCount = Math.min(selectedPrize.remaining, participantsCopy.length);
@@ -2687,6 +2722,12 @@
         document.getElementById('poppedWinners').innerHTML = '';
         document.getElementById('bubbleInstruction').innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังสุ่มและสร้างฟองสบู่...';
         
+        // Reset popAllBtn state
+        const popAllBtn = document.getElementById('popAllBtn');
+        if (popAllBtn) {
+            popAllBtn.disabled = false;
+        }
+        
         // Call API to get winners
         fetch('/api/spin', {
             method: 'POST',
@@ -2766,10 +2807,76 @@
         return bubble;
     }
 
+    function playBubblePopSound() {
+        // เล่นเสียงฟองสบู่แตก
+        if (bubblePopAudio) {
+            bubblePopAudio.pause();
+            bubblePopAudio.currentTime = 0;
+        }
+        
+        bubblePopAudio = new Audio('/assets/Music/bubble-pop.mp3');
+        bubblePopAudio.volume = 0.7;
+        
+        bubblePopAudio.onerror = function(e) {
+            console.error('Error loading bubble-pop.mp3:', e);
+            // Fallback: สร้างเสียงฟองสบู่แตกด้วย Web Audio API
+            playBubblePopSoundFallback();
+        };
+        
+        bubblePopAudio.play().catch(err => {
+            console.error('Error playing bubble-pop.mp3:', err);
+            // Fallback: สร้างเสียงฟองสบู่แตกด้วย Web Audio API
+            playBubblePopSoundFallback();
+        });
+    }
+    
+    function playBubblePopSoundFallback() {
+        // Fallback: สร้างเสียงฟองสบู่แตกด้วย Web Audio API
+        try {
+            const ctx = initAudioContext();
+            if (ctx.state === 'suspended') {
+                ctx.resume();
+            }
+            
+            const now = ctx.currentTime;
+            
+            // เสียงฟองสบู่แตก - เสียงสูงที่ลดลงเร็ว
+            const osc1 = ctx.createOscillator();
+            const gain1 = ctx.createGain();
+            osc1.connect(gain1);
+            gain1.connect(ctx.destination);
+            osc1.type = 'sine';
+            osc1.frequency.setValueAtTime(800, now);
+            osc1.frequency.exponentialRampToValueAtTime(200, now + 0.1);
+            gain1.gain.setValueAtTime(0.3, now);
+            gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            osc1.start(now);
+            osc1.stop(now + 0.1);
+            
+            // เสียงเสริม - เสียงต่ำที่เพิ่มขึ้น
+            const osc2 = ctx.createOscillator();
+            const gain2 = ctx.createGain();
+            osc2.connect(gain2);
+            gain2.connect(ctx.destination);
+            osc2.type = 'triangle';
+            osc2.frequency.setValueAtTime(100, now);
+            osc2.frequency.exponentialRampToValueAtTime(150, now + 0.05);
+            gain2.gain.setValueAtTime(0.2, now);
+            gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+            osc2.start(now);
+            osc2.stop(now + 0.08);
+        } catch (e) {
+            console.log('Audio not available:', e);
+        }
+    }
+    
     function popBubble(bubble, winner) {
         if (bubble.classList.contains('popping')) return;
         
         bubble.classList.add('popping');
+        
+        // เล่นเสียงฟองสบู่แตก
+        playBubblePopSound();
         
         // Create ripple effect
         createRippleEffect(bubble);
@@ -2997,9 +3104,12 @@
         isProcessing = false;
         document.getElementById('createBubbleBtn').disabled = false;
         
+        // เก็บ revealedWinners ก่อนเรียก closeBubbleFullscreen (เพราะ closeBubbleFullscreen จะ reset revealedWinners)
+        const winnersToShow = [...revealedWinners];
+        
         // Close bubble fullscreen and show winners modal
         closeBubbleFullscreen();
-        showBubbleWinners(revealedWinners);
+        showBubbleWinners(winnersToShow);
         
         pendingWinners = [];
         revealedWinners = [];
@@ -3081,10 +3191,20 @@
         winnerTitle.className = 'winner-title normal';
         winnerTitle.textContent = '🎉 ยินดีด้วย! 🎉';
         
-        winnerPrizeName.innerHTML = `<i class="fas fa-gift"></i> ${selectedPrize.name}`;
+        winnerPrizeName.innerHTML = `<i class="fas fa-gift"></i> ${selectedPrize ? selectedPrize.name : ''}`;
         winnerList.innerHTML = '';
         
-        winners.forEach((winner, index) => {
+        console.log('showBubbleWinners - winners:', winners); // Debug
+        console.log('showBubbleWinners - winners.length:', winners ? winners.length : 0); // Debug
+        
+        if (!winners || winners.length === 0) {
+            console.warn('No winners to display!');
+            const emptyItem = document.createElement('div');
+            emptyItem.className = 'winner-item normal-winner';
+            emptyItem.innerHTML = '<div class="person"><span>ไม่มีผู้โชคดี</span></div>';
+            winnerList.appendChild(emptyItem);
+        } else {
+            winners.forEach((winner, index) => {
             // Find participant to get image_path
             const participant = participantsCopy.find(p => p.id === winner.winner_id) || 
                                participants.find(p => p.id === winner.winner_id);
@@ -3102,13 +3222,14 @@
                 </div>
             `;
             winnerList.appendChild(item);
-        });
+            });
+        }
         
         modal.classList.add('active');
         createConfetti(false, 100);
         
         // อ่านชื่อผู้โชคดีด้วยเสียง AI
-        if (winners.length > 0) {
+        if (winners && winners.length > 0) {
             // รอให้ modal แสดงผลก่อน แล้วค่อยอ่าน
             setTimeout(() => {
                 winners.forEach((winner, index) => {
@@ -3129,6 +3250,17 @@
         selectedCount = 0;
         document.querySelectorAll('.count-btn').forEach(btn => btn.classList.remove('active'));
         isProcessing = false;
+        
+        // Reset popAllBtn state
+        const popAllBtn = document.getElementById('popAllBtn');
+        if (popAllBtn) {
+            popAllBtn.disabled = false;
+        }
+        
+        // Reset revealed winners
+        revealedWinners = [];
+        revealedCount = 0;
+        pendingWinners = [];
         
         // เล่นเพลงอีกครั้งเมื่อปิด
         playBackgroundMusic();
@@ -3508,7 +3640,7 @@
             `;
             winnerList.appendChild(item);
         });
-
+        
         modal.classList.add('active');
         createConfetti(true, 150);
         
