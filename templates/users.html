@@ -39,6 +39,81 @@
         .users-grid {
             grid-template-columns: 1fr;
         }
+        
+        .page-title h1 {
+            font-size: 2rem;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .page-title h1 {
+            font-size: 1.8rem;
+        }
+        
+        .form-group label {
+            font-size: 0.9rem;
+        }
+        
+        .form-group input,
+        .form-group select {
+            font-size: 0.9rem;
+            padding: 0.7rem;
+        }
+        
+        .btn {
+            padding: 0.8rem 1.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .users-table {
+            font-size: 0.85rem;
+        }
+        
+        .users-table th,
+        .users-table td {
+            padding: 0.6rem 0.4rem;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .page-title h1 {
+            font-size: 1.5rem;
+        }
+        
+        .form-group input,
+        .form-group select {
+            font-size: 0.85rem;
+            padding: 0.6rem;
+        }
+        
+        .btn {
+            padding: 0.7rem 1.2rem;
+            font-size: 0.85rem;
+            width: 100%;
+        }
+        
+        .users-table {
+            font-size: 0.8rem;
+        }
+        
+        .users-table th,
+        .users-table td {
+            padding: 0.5rem 0.3rem;
+        }
+        
+        .users-table th:nth-child(3),
+        .users-table td:nth-child(3) {
+            display: none;
+        }
+        
+        .btn-sm {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.75rem;
+        }
     }
 
     /* Add User Section */

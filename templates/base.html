@@ -310,28 +310,110 @@
         }
 
         /* Responsive */
+        @media (max-width: 1024px) {
+            nav .container {
+                max-width: 100%;
+                padding: 0 1rem;
+            }
+            
+            .nav-links a {
+                padding: 0.7rem 1.8rem !important;
+                font-size: 0.85rem !important;
+            }
+        }
+        
         @media (max-width: 768px) {
             nav .container {
                 flex-direction: column;
                 gap: 1rem;
+                padding: 1rem;
+            }
+
+            .logo {
+                font-size: 1.2rem;
             }
 
             .nav-links {
                 flex-wrap: wrap;
                 justify-content: center;
+                gap: 0.5rem;
             }
 
             .nav-links a {
-                padding: 0.6rem 1.5rem;
-                font-size: 0.85rem;
-                letter-spacing: 0.5px;
-                word-spacing: 1px;
-                line-height: 1.6;
+                padding: 0.6rem 1.2rem !important;
+                font-size: 0.8rem !important;
+                letter-spacing: 0.3px !important;
+                word-spacing: 0.5px !important;
+                line-height: 1.5 !important;
+            }
+            
+            .nav-links a i {
+                font-size: 0.9rem;
+                margin-right: 0.3rem;
+            }
+            
+            .user-badge {
+                font-size: 0.7rem;
+                padding: 0.15rem 0.4rem;
             }
 
             .container {
                 padding: 1rem;
             }
+            
+            main {
+                padding-top: 80px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .logo {
+                font-size: 1rem;
+            }
+            
+            .nav-links {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .nav-links a {
+                width: 100%;
+                padding: 0.7rem 1rem !important;
+                font-size: 0.85rem !important;
+                justify-content: flex-start;
+            }
+            
+            .nav-links a.logout-link {
+                justify-content: center;
+            }
+        }
+        
+        /* Video Overlay - Idle Screen */
+        .video-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            background: #000000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 1s ease-in-out, visibility 1s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .video-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .video-overlay video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
     </style>
     {% block extra_css %}{% endblock %}
@@ -378,6 +460,13 @@
     <main>
         {% block content %}{% endblock %}
     </main>
+
+    <!-- Video Overlay for Idle Screen -->
+    <div class="video-overlay" id="videoOverlay">
+        <video id="idleVideo" autoplay loop muted playsinline>
+            <source src="/assets/Movie/SP_GROUP.mp4" type="video/mp4">
+        </video>
+    </div>
 
     <script>
         // Create stars
@@ -519,6 +608,99 @@
                 sessionStorage.setItem(BG_MUSIC_TIME_KEY, bgMusic.currentTime.toString());
             }
         }, 2000);
+    </script>
+    
+    <!-- Idle Video Overlay Script -->
+    <script>
+        // ==================== Idle Video Overlay ====================
+        (function() {
+            const videoOverlay = document.getElementById('videoOverlay');
+            const idleVideo = document.getElementById('idleVideo');
+            let inactivityTimer = null;
+            const INACTIVITY_TIME = 15000; // 15 seconds (ปรับเปลี่ยนตามต้องการ)
+            let isVideoActive = false;
+            
+            // ฟังก์ชันสำหรับแสดงวิดีโอ (fade in)
+            function showVideoOverlay() {
+                if (!isVideoActive) {
+                    isVideoActive = true;
+                    videoOverlay.classList.add('active');
+                    // รอให้ fade in เสร็จก่อนแล้วค่อยเล่นวิดีโอ
+                    setTimeout(function() {
+                        if (idleVideo.paused) {
+                            idleVideo.currentTime = 0;
+                            idleVideo.play().catch(function(err) {
+                                console.log('Video play error:', err);
+                            });
+                        }
+                    }, 100);
+                }
+            }
+            
+            // ฟังก์ชันสำหรับซ่อนวิดีโอ (fade out)
+            function hideVideoOverlay() {
+                if (isVideoActive) {
+                    isVideoActive = false;
+                    videoOverlay.classList.remove('active');
+                    // หยุดวิดีโอเมื่อ fade out เสร็จ
+                    setTimeout(function() {
+                        if (!idleVideo.paused) {
+                            idleVideo.pause();
+                        }
+                    }, 1000); // รอให้ fade out เสร็จ (1 วินาที)
+                }
+            }
+            
+            // ฟังก์ชันสำหรับรีเซ็ต timer
+            function resetInactivityTimer() {
+                // ซ่อนวิดีโอถ้ามันแสดงอยู่
+                hideVideoOverlay();
+                
+                // ล้าง timer เก่า
+                if (inactivityTimer) {
+                    clearTimeout(inactivityTimer);
+                }
+                
+                // ตั้ง timer ใหม่
+                inactivityTimer = setTimeout(function() {
+                    showVideoOverlay();
+                }, INACTIVITY_TIME);
+            }
+            
+            // Event listeners สำหรับตรวจจับกิจกรรม
+            const activityEvents = [
+                'mousedown',
+                'mousemove',
+                'keypress',
+                'scroll',
+                'touchstart',
+                'click'
+            ];
+            
+            activityEvents.forEach(function(event) {
+                document.addEventListener(event, resetInactivityTimer, true);
+            });
+            
+            // เริ่มต้น timer เมื่อโหลดหน้า
+            document.addEventListener('DOMContentLoaded', function() {
+                resetInactivityTimer();
+            });
+            
+            // เมื่อวิดีโอจบให้เล่นต่อ (loop)
+            idleVideo.addEventListener('ended', function() {
+                if (isVideoActive) {
+                    idleVideo.currentTime = 0;
+                    idleVideo.play().catch(function(err) {
+                        console.log('Video loop error:', err);
+                    });
+                }
+            });
+            
+            // รีเซ็ต timer เมื่อคลิกบน overlay (เพื่อให้สามารถดูวิดีโอได้ถ้าต้องการ)
+            videoOverlay.addEventListener('click', function() {
+                resetInactivityTimer();
+            });
+        })();
     </script>
 </body>
 </html>

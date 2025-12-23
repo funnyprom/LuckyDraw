@@ -430,14 +430,123 @@
     }
 
     /* Responsive */
+    @media (max-width: 1024px) {
+        .stats-section {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+        
+        .results-table {
+            font-size: 0.9rem;
+        }
+        
+        .results-table th,
+        .results-table td {
+            padding: 0.8rem 0.5rem;
+        }
+    }
+    
     @media (max-width: 768px) {
         .page-title h1 {
             font-size: 2rem;
         }
-
+        
+        .stats-section {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        
+        .stat-card {
+            padding: 1rem;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+        }
+        
+        .filter-tabs {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .filter-tabs .tab {
+            width: 100%;
+            padding: 0.8rem;
+        }
+        
         .results-table {
             display: block;
             overflow-x: auto;
+            font-size: 0.85rem;
+        }
+        
+        .results-table th,
+        .results-table td {
+            padding: 0.6rem 0.4rem;
+            white-space: nowrap;
+        }
+        
+        .results-table th:first-child,
+        .results-table td:first-child {
+            min-width: 50px;
+        }
+        
+        .results-table th:nth-child(2),
+        .results-table td:nth-child(2) {
+            min-width: 150px;
+        }
+        
+        .items-list {
+            grid-template-columns: 1fr;
+        }
+        
+        .item-card {
+            padding: 1rem;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .page-title h1 {
+            font-size: 1.5rem;
+        }
+        
+        .search-box {
+            max-width: 100%;
+        }
+        
+        .search-box input {
+            font-size: 0.9rem;
+            padding: 0.8rem 0.8rem 0.8rem 3rem;
+        }
+        
+        .results-table {
+            font-size: 0.8rem;
+        }
+        
+        .results-table th,
+        .results-table td {
+            padding: 0.5rem 0.3rem;
+        }
+        
+        .prize-badge {
+            font-size: 0.75rem;
+            padding: 0.3rem 0.6rem;
+        }
+        
+        .winner-name {
+            font-size: 0.9rem;
+        }
+        
+        .item-card {
+            padding: 0.8rem;
+        }
+        
+        .item-name {
+            font-size: 0.9rem;
         }
     }
 </style>
