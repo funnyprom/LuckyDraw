@@ -617,11 +617,22 @@
             const videoOverlay = document.getElementById('videoOverlay');
             const idleVideo = document.getElementById('idleVideo');
             let inactivityTimer = null;
-            const INACTIVITY_TIME = 15000; // 15 seconds (ปรับเปลี่ยนตามต้องการ)
+            const INACTIVITY_TIME = 30000; // 30 seconds (ปรับเปลี่ยนตามต้องการ)
             let isVideoActive = false;
+            
+            // ฟังก์ชันตรวจสอบว่าอยู่ในหน้า results หรือไม่
+            function isResultsPage() {
+                return window.location.pathname === '/results' || 
+                       window.location.pathname.startsWith('/results');
+            }
             
             // ฟังก์ชันสำหรับแสดงวิดีโอ (fade in)
             function showVideoOverlay() {
+                // ไม่แสดงวิดีโอถ้าอยู่ในหน้า results
+                if (isResultsPage()) {
+                    return;
+                }
+                
                 if (!isVideoActive) {
                     isVideoActive = true;
                     videoOverlay.classList.add('active');
@@ -653,6 +664,18 @@
             
             // ฟังก์ชันสำหรับรีเซ็ต timer
             function resetInactivityTimer() {
+                // ไม่ตั้ง timer ถ้าอยู่ในหน้า results
+                if (isResultsPage()) {
+                    // ล้าง timer ถ้ามี
+                    if (inactivityTimer) {
+                        clearTimeout(inactivityTimer);
+                        inactivityTimer = null;
+                    }
+                    // ซ่อนวิดีโอถ้ามันแสดงอยู่
+                    hideVideoOverlay();
+                    return;
+                }
+                
                 // ซ่อนวิดีโอถ้ามันแสดงอยู่
                 hideVideoOverlay();
                 
@@ -688,7 +711,7 @@
             
             // เมื่อวิดีโอจบให้เล่นต่อ (loop)
             idleVideo.addEventListener('ended', function() {
-                if (isVideoActive) {
+                if (isVideoActive && !isResultsPage()) {
                     idleVideo.currentTime = 0;
                     idleVideo.play().catch(function(err) {
                         console.log('Video loop error:', err);

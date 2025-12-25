@@ -1244,6 +1244,44 @@
         border-color: #ffffff;
     }
 
+    .count-custom-input {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+
+    .count-custom-input input {
+        padding: 0.6rem 1rem;
+        border-radius: 10px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        font-family: 'Prompt', sans-serif;
+        font-size: 1rem;
+        font-weight: 600;
+        text-align: center;
+        width: 100px;
+        transition: all 0.3s ease;
+    }
+
+    .count-custom-input input:focus {
+        outline: none;
+        border-color: #ffffff;
+        background: rgba(255, 255, 255, 0.2);
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+    }
+
+    .count-custom-input input::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .count-custom-input label {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 0.9rem;
+        white-space: nowrap;
+    }
+
     /* Spin/Start Button */
     .btn-spin {
         padding: 1.25rem 3rem;
@@ -1918,6 +1956,10 @@
                     <button class="count-btn" data-count="5" onclick="selectCount(5)">5</button>
                     <button class="count-btn" data-count="10" onclick="selectCount(10)" style="display: none;">10</button>
                 </div>
+                <div class="count-custom-input">
+                    <label for="customCountInput">หรือกรอกจำนวนเอง:</label>
+                    <input type="number" id="customCountInput" min="1" placeholder="จำนวน" oninput="selectCustomCount()" onchange="selectCustomCount()">
+                </div>
             </div>
 
             <!-- Create Bubble Button (Normal Prize) -->
@@ -2024,6 +2066,7 @@
     let pendingWinners = [];
     let revealedWinners = [];
     let revealedCount = 0;
+    let isFinishingBubbleGame = false;
     
     // ==================== Background Music ====================
     // ฟังก์ชันการจัดการเพลงถูกย้ายไปที่ base.html แล้ว
@@ -2784,9 +2827,9 @@
         isProcessing = false;
         pendingWinners = [];
         revealedCount = 0;
-        selectedCount = 0;
+        resetCountSelection();
         revealedWinners = [];
-        document.querySelectorAll('.count-btn').forEach(btn => btn.classList.remove('active'));
+        isFinishingBubbleGame = false;
         
         // Reset popAllBtn state
         const popAllBtn = document.getElementById('popAllBtn');
@@ -2821,12 +2864,55 @@
         if (!selectedPrize) return;
         const maxCount = Math.min(selectedPrize.remaining, participantsCopy.length);
         if (count > maxCount) {
-            alert(`ไม่สามารถเลือก ${count} ผู้โชคดีได้`);
+            alert(`ไม่สามารถเลือก ${count} ผู้โชคดีได้ (สูงสุด ${maxCount} คน)`);
             return;
         }
         selectedCount = count;
         document.querySelectorAll('.count-btn').forEach(btn => {
             btn.classList.toggle('active', parseInt(btn.dataset.count) === count);
+        });
+        // ล้าง custom input เมื่อเลือกปุ่ม
+        const customInput = document.getElementById('customCountInput');
+        if (customInput) {
+            customInput.value = '';
+        }
+    }
+
+    function resetCountSelection() {
+        // Helper function สำหรับรีเซ็ตการเลือกจำนวน
+        selectedCount = 0;
+        const customInput = document.getElementById('customCountInput');
+        if (customInput) {
+            customInput.value = '';
+        }
+        // ล้าง active state จากปุ่มทั้งหมด
+        document.querySelectorAll('.count-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+    }
+
+    function selectCustomCount() {
+        if (!selectedPrize) return;
+        const customInput = document.getElementById('customCountInput');
+        const customCount = parseInt(customInput.value);
+        
+        // ถ้าไม่ได้กรอกอะไร หรือเป็น 0 ให้ล้างการเลือก
+        if (!customInput.value || customInput.value.trim() === '' || isNaN(customCount) || customCount <= 0) {
+            resetCountSelection();
+            return;
+        }
+        
+        const maxCount = Math.min(selectedPrize.remaining, participantsCopy.length);
+        if (customCount > maxCount) {
+            alert(`ไม่สามารถเลือก ${customCount} ผู้โชคดีได้ (สูงสุด ${maxCount} คน)`);
+            resetCountSelection();
+            return;
+        }
+        
+        selectedCount = customCount;
+        // ล้าง active state จากปุ่มทั้งหมดเมื่อกรอกเอง
+        document.querySelectorAll('.count-btn').forEach(btn => {
+            btn.classList.remove('active');
         });
     }
 
@@ -2932,12 +3018,13 @@
             if (data.success) {
                 pendingWinners = data.results;
                 revealedCount = 0;
+                isFinishingBubbleGame = false;
                 
                 // Update prize remaining
                 selectedPrize.remaining = data.prize_remaining;
                 document.getElementById('selectedPrizeRemaining').textContent = `เหลือ ${data.prize_remaining} รางวัล`;
                 
-                // Create bubbles
+                // Create bubbles - สร้างทีละลูก (เร็วกว่าเดิม: 100ms delay)
                 const container = document.getElementById('bubbleContainer');
                 const containerRect = container.getBoundingClientRect();
                 
@@ -2957,9 +3044,9 @@
                                 if (popAllBtn) {
                                     popAllBtn.disabled = false;
                                 }
-                            }, 300); // รอ 300ms หลังจากฟองสบู่ตัวสุดท้ายถูกสร้าง
+                            }, 100);
                         }
-                    }, index * 300);
+                    }, index * 100); // เร็วขึ้น: จาก 300ms เป็น 100ms
                 });
             } else {
                 alert(data.error || 'เกิดข้อผิดพลาด');
@@ -3095,7 +3182,8 @@
             revealedCount++;
             
             // Check if all bubbles popped
-            if (revealedCount === pendingWinners.length) {
+            if (revealedCount === pendingWinners.length && !isFinishingBubbleGame) {
+                isFinishingBubbleGame = true;
                 setTimeout(() => {
                     finishBubbleGame();
                 }, 500);
@@ -3277,17 +3365,23 @@
         document.getElementById('popAllBtn').disabled = true;
         document.getElementById('bubbleInstruction').innerHTML = '<i class="fas fa-magic"></i> กำลังเปิดเผยทั้งหมด...';
         
-        // Pop each bubble with a small delay for effect
+        // Pop each bubble with a small delay for effect (เร็วกว่าเดิม: 100ms delay)
         bubbles.forEach((bubble, index) => {
             setTimeout(() => {
                 if (!bubble.classList.contains('popped')) {
                     bubble.click();
                 }
-            }, index * 300); // 300ms delay between each pop
+            }, index * 100); // เร็วขึ้น: จาก 300ms เป็น 100ms
         });
     }
 
     function finishBubbleGame() {
+        if (isFinishingBubbleGame === false && revealedCount < pendingWinners.length) {
+            return; // Already finished or not ready
+        }
+        
+        console.log('finishBubbleGame called', { revealedCount, pendingWinnersLength: pendingWinners.length, revealedWinnersCount: revealedWinners.length });
+        
         // Update stats
         document.getElementById('participantCount').textContent = participantsCopy.length;
         const normalCount = parseInt(document.getElementById('normalPrizeCount').textContent) - revealedWinners.length;
@@ -3309,12 +3403,33 @@
         // เก็บ revealedWinners ก่อนเรียก closeBubbleFullscreen (เพราะ closeBubbleFullscreen จะ reset revealedWinners)
         const winnersToShow = [...revealedWinners];
         
-        // Close bubble fullscreen and show winners modal
-        closeBubbleFullscreen();
-        showBubbleWinners(winnersToShow);
+        console.log('winnersToShow:', winnersToShow);
         
+        // Close bubble fullscreen first (but don't play background music yet)
+        document.getElementById('bubbleFullscreen').classList.remove('active');
+        document.getElementById('bubbleContainer').innerHTML = '';
+        document.getElementById('poppedWinners').innerHTML = '';
+        
+        // Reset selection
+        resetCountSelection();
+        
+        // Reset popAllBtn state
+        const popAllBtn = document.getElementById('popAllBtn');
+        if (popAllBtn) {
+            popAllBtn.disabled = false;
+        }
+        
+        // Show winners modal (this will handle stopping background music and playing Lucky music)
+        // Use a small delay to ensure DOM is ready
+        setTimeout(() => {
+            showBubbleWinners(winnersToShow);
+        }, 100);
+        
+        // Reset after showing modal
         pendingWinners = [];
         revealedWinners = [];
+        revealedCount = 0;
+        isFinishingBubbleGame = false;
     }
     
     function playLuckyMusic() {
@@ -3398,6 +3513,7 @@
         
         console.log('showBubbleWinners - winners:', winners); // Debug
         console.log('showBubbleWinners - winners.length:', winners ? winners.length : 0); // Debug
+        console.log('showBubbleWinners - modal element:', modal); // Debug
         
         if (!winners || winners.length === 0) {
             console.warn('No winners to display!');
@@ -3427,7 +3543,9 @@
             });
         }
         
+        console.log('showBubbleWinners - about to show modal, modal element:', modal); // Debug
         modal.classList.add('active');
+        console.log('showBubbleWinners - modal.classList after add active:', modal.classList.toString()); // Debug
         createConfetti(false, 100);
         
         // อ่านชื่อผู้โชคดีด้วยเสียง AI
@@ -3449,8 +3567,7 @@
         document.getElementById('poppedWinners').innerHTML = '';
         
         // Reset selection
-        selectedCount = 0;
-        document.querySelectorAll('.count-btn').forEach(btn => btn.classList.remove('active'));
+        resetCountSelection();
         isProcessing = false;
         
         // Reset popAllBtn state
