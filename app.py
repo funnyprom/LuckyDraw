@@ -71,6 +71,7 @@ class Participant(db.Model):
     is_winner = db.Column(db.Boolean, default=False)
     prize_id = db.Column(db.Integer, db.ForeignKey('prize.id'), nullable=True)
     won_at = db.Column(db.DateTime, nullable=True)
+    attendance_status = db.Column(db.String(50), default='เข้าร่วมงาน')  # สถานะการเข้าร่วม: 'เข้าร่วมงาน', 'ไม่เข้าร่วมงาน'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     prize = db.relationship('Prize', backref='winner', foreign_keys=[prize_id])
@@ -103,6 +104,7 @@ class DrawHistory(db.Model):
     participant_name = db.Column(db.String(100), nullable=False)
     prize_name = db.Column(db.String(200), nullable=False)
     is_grand = db.Column(db.Boolean, default=False)
+    status = db.Column(db.String(50), default='ได้รับรางวัล')  # สถานะ: 'ได้รับรางวัล', 'ไม่เข้าร่วมงาน'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 # Helper functions
@@ -114,6 +116,34 @@ def allowed_file(filename):
 # Create tables and default admin user
 with app.app_context():
     db.create_all()
+    
+    # เพิ่มคอลัมน์ attendance_status ถ้ายังไม่มี (สำหรับฐานข้อมูลที่มีอยู่แล้ว)
+    try:
+        from sqlalchemy import inspect, text
+        inspector = inspect(db.engine)
+        columns = [col['name'] for col in inspector.get_columns('participant')]
+        if 'attendance_status' not in columns:
+            # เพิ่มคอลัมน์ attendance_status
+            db.session.execute(text('ALTER TABLE participant ADD COLUMN attendance_status VARCHAR(50) DEFAULT "เข้าร่วมงาน"'))
+            db.session.commit()
+            print("Added attendance_status column to participant table")
+    except Exception as e:
+        print(f"Note: Could not add attendance_status column (may already exist or database issue): {e}")
+        db.session.rollback()
+    
+    # เพิ่มคอลัมน์ status ใน DrawHistory ถ้ายังไม่มี (สำหรับฐานข้อมูลที่มีอยู่แล้ว)
+    try:
+        from sqlalchemy import inspect, text
+        inspector = inspect(db.engine)
+        columns = [col['name'] for col in inspector.get_columns('draw_history')]
+        if 'status' not in columns:
+            # เพิ่มคอลัมน์ status
+            db.session.execute(text('ALTER TABLE draw_history ADD COLUMN status VARCHAR(50) DEFAULT "ได้รับรางวัล"'))
+            db.session.commit()
+            print("Added status column to draw_history table")
+    except Exception as e:
+        print(f"Note: Could not add status column (may already exist or database issue): {e}")
+        db.session.rollback()
     
     # สร้าง default admin ถ้ายังไม่มี
     if not User.query.filter_by(username='admin').first():
@@ -266,6 +296,7 @@ def results_page():
     
     # สร้าง dictionary เพิ่มเติมจากผู้ชนะที่ยังมี prize_id
     winners = Participant.query.filter_by(is_winner=True).all()
+    winner_participant_map = {}  # map participant_name -> participant_id
     for winner in winners:
         if winner.prize_id:
             prize = Prize.query.get(winner.prize_id)
@@ -273,12 +304,31 @@ def results_page():
                 key = (prize.name, prize.is_grand)
                 if prize.image_path and prize.image_path.strip():
                     prize_image_map[key] = prize.image_path
+                # สร้าง map สำหรับหา participant_id จากชื่อ
+                winner_participant_map[winner.name] = winner.id
+    
+    # เพิ่ม participant_id และ status ใน history
+    history_with_ids = []
+    for h in history:
+        h_dict = {
+            'id': h.id,
+            'participant_name': h.participant_name,
+            'participant_id': winner_participant_map.get(h.participant_name),
+            'prize_name': h.prize_name,
+            'is_grand': h.is_grand,
+            'status': getattr(h, 'status', 'ได้รับรางวัล'),  # ใช้ getattr เพื่อรองรับฐานข้อมูลเก่าที่ยังไม่มี status
+            'created_at': h.created_at
+        }
+        history_with_ids.append(h_dict)
+    
+    is_admin = session.get('user_type') == 'admin'
     
     return render_template('results.html', 
-                         history=history,
+                         history=history_with_ids,
                          non_winners=non_winners,
                          unclaimed_prizes=unclaimed_prizes,
-                         prize_image_map=prize_image_map)
+                         prize_image_map=prize_image_map,
+                         is_admin=is_admin)
 
 @app.route('/admin')
 @admin_required
@@ -354,6 +404,47 @@ def delete_participant(id):
     db.session.delete(participant)
     db.session.commit()
     return jsonify({'success': True})
+
+@app.route('/api/participants/<int:id>/unclaim', methods=['POST'])
+@admin_required
+def unclaim_winner(id):
+    """เปลี่ยนสถานะผู้ชนะเป็น 'ไม่เข้าร่วมงาน' แต่คงชื่อไว้ในรายการผู้ได้รับรางวัล และคืนรางวัลกลับ"""
+    participant = Participant.query.get_or_404(id)
+    
+    if not participant.is_winner:
+        return jsonify({'error': 'ผู้ใช้คนนี้ไม่ได้เป็นผู้ชนะ'}), 400
+    
+    if not participant.prize_id:
+        return jsonify({'error': 'ไม่พบรางวัลที่เกี่ยวข้อง'}), 400
+    
+    # หารางวัลที่เกี่ยวข้อง
+    prize = Prize.query.get(participant.prize_id)
+    if not prize:
+        return jsonify({'error': 'ไม่พบรางวัล'}), 400
+    
+    # อัพเดทสถานะใน DrawHistory (ไม่ลบ แต่เปลี่ยน status)
+    history_entry = DrawHistory.query.filter_by(
+        participant_name=participant.name,
+        prize_name=prize.name
+    ).first()
+    
+    if history_entry:
+        history_entry.status = 'ไม่เข้าร่วมงาน'
+    
+    # คืนรางวัล (ลด claimed_count)
+    if prize.claimed_count > 0:
+        prize.claimed_count -= 1
+    
+    # อัพเดทสถานะ participant (แต่ยังคง is_winner = True เพื่อคงอยู่ในรายการ)
+    participant.attendance_status = 'ไม่เข้าร่วมงาน'
+    # ไม่เปลี่ยน is_winner, prize_id, won_at เพื่อคงอยู่ในรายการผู้ได้รับรางวัล
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': f'เปลี่ยนสถานะ {participant.name} เป็น "ไม่เข้าร่วมงาน" และคืนรางวัล "{prize.name}" กลับเรียบร้อย'
+    })
 
 @app.route('/api/participants/bulk', methods=['POST'])
 @admin_required
@@ -552,7 +643,8 @@ def spin():
         history = DrawHistory(
             participant_name=winner.name,
             prize_name=prize.name,
-            is_grand=prize.is_grand
+            is_grand=prize.is_grand,
+            status='ได้รับรางวัล'
         )
         db.session.add(history)
         
