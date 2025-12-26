@@ -580,6 +580,32 @@
         color: white;
     }
 
+    .btn-edit {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border: none;
+        background: #e5f3ff;
+        color: #0033A0;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .btn-edit:hover {
+        background: #0033A0;
+        color: white;
+    }
+
+    .item-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
     /* Empty State */
     .empty-state {
         text-align: center;
@@ -666,6 +692,90 @@
         display: flex;
         gap: 1rem;
         justify-content: center;
+    }
+
+    /* Edit Modal */
+    .edit-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+        backdrop-filter: blur(10px);
+        overflow-y: auto;
+        padding: 2rem 0;
+    }
+
+    .edit-modal.active {
+        display: flex;
+    }
+
+    .edit-modal-content {
+        background: #ffffff;
+        border-radius: 15px;
+        padding: 2rem;
+        max-width: 600px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        border: none;
+        box-shadow: 0 10px 50px rgba(0, 0, 0, 0.3);
+        position: relative;
+    }
+
+    .edit-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .edit-modal-header h3 {
+        font-size: 1.5rem;
+        color: #333;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .edit-modal-header h3 i {
+        color: #0033A0;
+    }
+
+    .edit-modal-close {
+        background: #f0f0f0;
+        border: none;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #666;
+        transition: all 0.3s ease;
+    }
+
+    .edit-modal-close:hover {
+        background: #e0e0e0;
+        color: #333;
+    }
+
+    .edit-modal-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 2px solid #e0e0e0;
     }
 </style>
 {% endblock %}
@@ -949,9 +1059,24 @@
                                     </div>
                                 </div>
                             </div>
-                            <button class="btn-delete" onclick="deleteItem('prize', {{ prize.id }}, '{{ prize.name }}')">
-                                <i class="fas fa-times"></i>
-                            </button>
+                            <div class="item-actions">
+                                <button class="btn-edit" 
+                                        data-prize-id="{{ prize.id }}"
+                                        data-prize-name="{{ prize.name }}"
+                                        data-prize-desc="{{ prize.description or '' }}"
+                                        data-prize-color="{{ prize.color or '#00d4ff' }}"
+                                        data-prize-qr="{{ prize.qr_code or '' }}"
+                                        data-prize-grand="{{ 'true' if prize.is_grand else 'false' }}"
+                                        data-prize-quantity="{{ prize.quantity }}"
+                                        data-prize-image="{{ prize.image_path or '' }}"
+                                        onclick="editPrizeFromButton(this)" 
+                                        title="แก้ไขรางวัล">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn-delete" onclick="deleteItem('prize', {{ prize.id }}, '{{ prize.name }}')" title="ลบรางวัล">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
                         </div>
                         {% endfor %}
                     {% else %}
@@ -981,6 +1106,97 @@
                 <i class="fas fa-check"></i> ยืนยัน
             </button>
         </div>
+    </div>
+</div>
+
+<!-- Edit Prize Modal -->
+<div class="edit-modal" id="editPrizeModal">
+    <div class="edit-modal-content">
+        <div class="edit-modal-header">
+            <h3><i class="fas fa-edit"></i> แก้ไขรางวัล</h3>
+            <button class="edit-modal-close" onclick="closeEditPrizeModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="editPrizeForm" onsubmit="updatePrize(event)" enctype="multipart/form-data">
+            <input type="hidden" id="editPrizeId" value="">
+            
+            <!-- Prize Type Toggle -->
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; color: rgba(0, 0, 0, 0.8);">
+                ประเภทรางวัล
+            </label>
+            <div class="prize-type-toggle">
+                <div class="prize-type-btn active grand" id="editPrizeTypeGrand" data-grand="true" onclick="selectEditPrizeType(true)">
+                    <i class="fas fa-crown"></i>
+                    รางวัลใหญ่
+                </div>
+                <div class="prize-type-btn normal" id="editPrizeTypeNormal" data-grand="false" onclick="selectEditPrizeType(false)">
+                    <i class="fas fa-gift"></i>
+                    รางวัลทั่วไป
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="editPrizeName">ชื่อรางวัล</label>
+                <input type="text" id="editPrizeName" placeholder="เช่น ข้าวสาร, มอไซต์" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="editPrizeImage"><i class="fas fa-image"></i> รูปภาพรางวัล (ไม่บังคับ)</label>
+                <input type="file" id="editPrizeImage" accept="image/*" onchange="previewEditImage(this)">
+                <div class="form-hint">รองรับไฟล์ PNG, JPG, JPEG, GIF, WEBP (ขนาดไม่เกิน 16MB)</div>
+                <div id="editImagePreview" style="margin-top: 1rem; display: none;">
+                    <img id="editPreviewImg" src="" alt="Preview" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid #e0e0e0;">
+                </div>
+                <div id="editCurrentImage" style="margin-top: 1rem; display: none;">
+                    <p style="font-size: 0.85rem; color: #666; margin-bottom: 0.5rem;">รูปภาพปัจจุบัน:</p>
+                    <img id="editCurrentImg" src="" alt="Current Image" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid #e0e0e0;">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="editPrizeQuantity"><i class="fas fa-sort-numeric-up"></i> จำนวนรางวัล</label>
+                <input type="number" id="editPrizeQuantity" value="1" min="1" max="999" placeholder="จำนวนรางวัล" required>
+                <div class="form-hint">เช่น ข้าวสาร 10 รางวัล ให้ใส่ 10</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="editPrizeQrCode"><i class="fas fa-qrcode"></i> รหัส QR Code (ไม่บังคับ)</label>
+                <input type="text" id="editPrizeQrCode" placeholder="เช่น PRIZE001, SKU123">
+                <div class="form-hint">ใช้สำหรับค้นหาหรือสแกน QR Code ในหน้าสุ่มรางวัล</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="editPrizeDesc">รายละเอียด (ไม่บังคับ)</label>
+                <input type="text" id="editPrizeDesc" placeholder="เช่น มูลค่า 50,000 บาท">
+            </div>
+            
+            <div class="form-group">
+                <label><i class="fas fa-palette"></i> สีรางวัล (สำหรับแสดงบนวงล้อ)</label>
+                <div class="color-picker-wrapper">
+                    <input type="color" id="editPrizeColor" value="#00d4ff" class="color-input">
+                    <div class="color-presets">
+                        <button type="button" class="color-preset" style="background: #ffffff" onclick="setEditColor('#ffffff')" title="ขาว (ข้าวสาร)"></button>
+                        <button type="button" class="color-preset" style="background: #ffd700" onclick="setEditColor('#ffd700')" title="ทอง (รางวัลใหญ่)"></button>
+                        <button type="button" class="color-preset" style="background: #00d4ff" onclick="setEditColor('#00d4ff')" title="ฟ้า"></button>
+                        <button type="button" class="color-preset" style="background: #ff6b6b" onclick="setEditColor('#ff6b6b')" title="แดง"></button>
+                        <button type="button" class="color-preset" style="background: #51cf66" onclick="setEditColor('#51cf66')" title="เขียว"></button>
+                        <button type="button" class="color-preset" style="background: #ffd43b" onclick="setEditColor('#ffd43b')" title="เหลือง"></button>
+                        <button type="button" class="color-preset" style="background: #845ef7" onclick="setEditColor('#845ef7')" title="ม่วง"></button>
+                        <button type="button" class="color-preset" style="background: #ff8787" onclick="setEditColor('#ff8787')" title="ชมพู"></button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="edit-modal-buttons">
+                <button type="button" class="btn btn-primary" onclick="closeEditPrizeModal()">
+                    <i class="fas fa-times"></i> ยกเลิก
+                </button>
+                <button type="submit" class="btn btn-gold">
+                    <i class="fas fa-save"></i> บันทึกการแก้ไข
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 {% endblock %}
@@ -1178,6 +1394,145 @@
 
     document.getElementById('confirmModal').addEventListener('click', function(e) {
         if (e.target === this) closeConfirm();
+    });
+
+    // ==================== Edit Prize Functions ====================
+    function editPrizeFromButton(button) {
+        const id = parseInt(button.getAttribute('data-prize-id'));
+        const name = button.getAttribute('data-prize-name');
+        const description = button.getAttribute('data-prize-desc');
+        const color = button.getAttribute('data-prize-color');
+        const qrCode = button.getAttribute('data-prize-qr');
+        const isGrand = button.getAttribute('data-prize-grand') === 'true';
+        const quantity = parseInt(button.getAttribute('data-prize-quantity'));
+        const imagePath = button.getAttribute('data-prize-image');
+        
+        editPrize(id, name, description, color, qrCode, isGrand, quantity, imagePath);
+    }
+
+    function editPrize(id, name, description, color, qrCode, isGrand, quantity, imagePath) {
+        // เติมข้อมูลในฟอร์ม
+        document.getElementById('editPrizeId').value = id;
+        document.getElementById('editPrizeName').value = name;
+        document.getElementById('editPrizeDesc').value = description || '';
+        document.getElementById('editPrizeColor').value = color || '#00d4ff';
+        document.getElementById('editPrizeQrCode').value = qrCode || '';
+        document.getElementById('editPrizeQuantity').value = quantity;
+        
+        // ตั้งค่าประเภทรางวัล
+        selectEditPrizeType(isGrand);
+        
+        // แสดงรูปภาพปัจจุบันถ้ามี
+        const currentImageDiv = document.getElementById('editCurrentImage');
+        const currentImg = document.getElementById('editCurrentImg');
+        const editImagePreview = document.getElementById('editImagePreview');
+        
+        if (imagePath && imagePath.trim() !== '' && imagePath !== 'None') {
+            currentImg.src = `/static/${imagePath}`;
+            currentImageDiv.style.display = 'block';
+            editImagePreview.style.display = 'none';
+        } else {
+            currentImageDiv.style.display = 'none';
+        }
+        
+        // รีเซ็ต preview รูปใหม่
+        document.getElementById('editPrizeImage').value = '';
+        
+        // แสดง modal
+        document.getElementById('editPrizeModal').classList.add('active');
+    }
+
+    function selectEditPrizeType(isGrand) {
+        const grandBtn = document.getElementById('editPrizeTypeGrand');
+        const normalBtn = document.getElementById('editPrizeTypeNormal');
+        
+        if (isGrand) {
+            grandBtn.classList.add('active');
+            normalBtn.classList.remove('active');
+        } else {
+            normalBtn.classList.add('active');
+            grandBtn.classList.remove('active');
+        }
+    }
+
+    function setEditColor(color) {
+        document.getElementById('editPrizeColor').value = color;
+    }
+
+    function previewEditImage(input) {
+        const preview = document.getElementById('editImagePreview');
+        const previewImg = document.getElementById('editPreviewImg');
+        const currentImageDiv = document.getElementById('editCurrentImage');
+        
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                preview.style.display = 'block';
+                currentImageDiv.style.display = 'none'; // ซ่อนรูปปัจจุบันเมื่อเลือกรูปใหม่
+            };
+            reader.readAsDataURL(input.files[0]);
+        } else {
+            preview.style.display = 'none';
+        }
+    }
+
+    function closeEditPrizeModal() {
+        document.getElementById('editPrizeModal').classList.remove('active');
+        // รีเซ็ตฟอร์ม
+        document.getElementById('editPrizeForm').reset();
+        document.getElementById('editImagePreview').style.display = 'none';
+        document.getElementById('editCurrentImage').style.display = 'none';
+    }
+
+    function updatePrize(e) {
+        e.preventDefault();
+        
+        const prizeId = document.getElementById('editPrizeId').value;
+        const name = document.getElementById('editPrizeName').value;
+        const description = document.getElementById('editPrizeDesc').value;
+        const color = document.getElementById('editPrizeColor').value;
+        const qrCode = document.getElementById('editPrizeQrCode').value;
+        const quantity = parseInt(document.getElementById('editPrizeQuantity').value);
+        const imageFile = document.getElementById('editPrizeImage').files[0];
+        const isGrand = document.getElementById('editPrizeTypeGrand').classList.contains('active');
+        
+        // สร้าง FormData
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('description', description);
+        formData.append('color', color);
+        formData.append('qr_code', qrCode);
+        formData.append('quantity', quantity);
+        formData.append('is_grand', isGrand);
+        
+        if (imageFile) {
+            formData.append('image', imageFile);
+        }
+        
+        // ส่ง request ไปอัปเดต
+        fetch(`/api/prizes/${prizeId}`, {
+            method: 'PUT',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeEditPrizeModal();
+                window.location.reload();
+            } else {
+                alert('เกิดข้อผิดพลาดในการแก้ไขรางวัล');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('เกิดข้อผิดพลาดในการแก้ไขรางวัล');
+        });
+    }
+
+    // ปิด modal เมื่อคลิกนอก modal
+    document.getElementById('editPrizeModal').addEventListener('click', function(e) {
+        if (e.target === this) closeEditPrizeModal();
     });
 </script>
 {% endblock %}
