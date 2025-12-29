@@ -3828,11 +3828,17 @@
         const snapTime = spinDuration * 1000;
         
         // Start spinning animation from current position
-        reel.style.transition = `transform ${spinDuration}s cubic-bezier(0.1, 0.8, 0.2, 1)`;
+        // สำหรับผู้ชนะคนเดียว (5 วินาที): กราฟสูตร: พุ่งไว แล้วเอื่อยยาว (หน้าไว หลังเอื่อย)
+        // สำหรับผู้ชนะหลายคน (3 วินาที): ใช้ easing เดิม
+        const easingFunction = spinDuration === 5 
+            ? 'cubic-bezier(0.1, 0.7, 0.1, 1)' // พุ่งไว แล้วเอื่อยยาว - หน้าไว หลังเอื่อย (ลุ้นมาก อ่านชื่อได้ทัน)
+            : 'cubic-bezier(0.1, 0.8, 0.2, 1)'; // easing เดิมสำหรับหลายคน
+        
+        reel.style.transition = `transform ${spinDuration}s ${easingFunction}`;
         reel.style.transform = `translateY(-50%) translateX(${currentX + overshootOffset}px)`;
         
         // Snap back to EXACT center with bounce effect
-            setTimeout(() => {
+        setTimeout(() => {
             reel.style.transition = 'transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1)';
             reel.style.transform = `translateY(-50%) translateX(${exactCenterOffset}px)`;
         }, snapTime);
